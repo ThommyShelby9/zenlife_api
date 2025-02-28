@@ -1,0 +1,117 @@
+[
+    {
+      "category": "Frontend Development",
+      "skills": [
+        { "name": "HTML5", "credits": 10, "description": "Maîtrise des balises sémantiques, formulaires et validation" },
+        { "name": "CSS3", "credits": 10, "description": "Styles, animations, responsive design, Flexbox et Grid" },
+        { "name": "JavaScript", "credits": 15, "description": "ES6+, DOM manipulation, événements, AJAX" },
+        { "name": "React.js", "credits": 20, "description": "Composants, hooks, state management, React Router" },
+        { "name": "Vue.js", "credits": 20, "description": "Composants, Vuex, Vue Router, Composition API" },
+        { "name": "Angular", "credits": 20, "description": "Components, services, modules, RxJS" },
+        { "name": "Sass/SCSS", "credits": 10, "description": "Variables, mixins, nesting, functions" },
+        { "name": "Tailwind CSS", "credits": 10, "description": "Utility-first CSS, composants, customisation" },
+        { "name": "TypeScript", "credits": 15, "description": "Types, interfaces, generics, decorators" }
+      ]
+    },
+    {
+      "category": "Digital Design",
+      "skills": [
+        { "name": "UI Design", "credits": 20, "description": "Interfaces utilisateur, wireframes, prototypes" },
+        { "name": "UX Design", "credits": 20, "description": "Parcours utilisateur, tests utilisateurs, personas" },
+        { "name": "Motion Design", "credits": 25, "description": "Animation 2D/3D, transitions, effets visuels" },
+        { "name": "Web Design", "credits": 20, "description": "Design responsive, grilles, typographie web" },
+        { "name": "Design System", "credits": 25, "description": "Création et maintenance de systèmes de design" },
+        { "name": "Figma", "credits": 15, "description": "Design d'interface, prototypage, collaboration" },
+        { "name": "Adobe XD", "credits": 15, "description": "Conception UI/UX, prototypes interactifs" }
+      ]
+    },
+    {
+      "category": "Digital Art",
+      "skills": [
+        { "name": "Digital Painting", "credits": 20, "description": "Illustration numérique, techniques de peinture" },
+        { "name": "Character Design", "credits": 25, "description": "Conception de personnages, stylisation" },
+        { "name": "Vector Art", "credits": 20, "description": "Illustration vectorielle, logos, icônes" },
+        { "name": "Concept Art", "credits": 25, "description": "Design d'environnements, props, véhicules" },
+        { "name": "Pixel Art", "credits": 15, "description": "Art pixelisé, animation sprite, tiles" },
+        { "name": "3D Modeling", "credits": 25, "description": "Modélisation, texturing, rigging" },
+        { "name": "NFT Creation", "credits": 20, "description": "Art numérique blockchain, collections" }
+      ]
+    },
+    {
+      "category": "Audio Production",
+      "skills": [
+        { "name": "Music Production", "credits": 25, "description": "Composition, arrangement, mixage" },
+        { "name": "Sound Design", "credits": 20, "description": "Création sonore, effets, ambiances" },
+        { "name": "Audio Mixing", "credits": 20, "description": "Mixage multicanal, égalisation, compression" },
+        { "name": "Voice Over", "credits": 15, "description": "Enregistrement voix, édition, traitement" },
+        { "name": "Podcast Production", "credits": 20, "description": "Enregistrement, montage, publication" },
+        { "name": "MIDI Production", "credits": 15, "description": "Séquençage, contrôle, automation" },
+        { "name": "Mastering", "credits": 25, "description": "Finalisation audio, loudness, formats" }
+      ]
+    },
+    {
+      "category": "Video Production",
+      "skills": [
+        { "name": "Video Editing", "credits": 20, "description": "Montage, transitions, effets visuels" },
+        { "name": "Color Grading", "credits": 20, "description": "Étalonnage, correction colorimétrique" },
+        { "name": "Motion Graphics", "credits": 25, "description": "Animation de texte, logos, transitions" },
+        { "name": "VFX", "credits": 25, "description": "Effets spéciaux, compositing, tracking" },
+        { "name": "Streaming", "credits": 15, "description": "Direct, OBS, interactions chat" },
+        { "name": "Video Marketing", "credits": 20, "description": "Formats sociaux, engagement, analytics" }
+      ]
+    },
+    {
+      "category": "Digital Marketing",
+      "skills": [
+        { "name": "SEO", "credits": 20, "description": "Optimisation moteurs de recherche, backlinks" },
+        { "name": "Social Media", "credits": 20, "description": "Gestion de communauté, création de contenu" },
+        { "name": "Content Marketing", "credits": 20, "description": "Stratégie de contenu, storytelling" },
+        { "name": "Email Marketing", "credits": 15, "description": "Campagnes, automation, analytics" },
+        { "name": "Growth Hacking", "credits": 25, "description": "Acquisition, rétention, optimisation" },
+        { "name": "Analytics", "credits": 20, "description": "Mesure performance, rapports, KPIs" }
+      ]
+    },
+    {
+      "category": "Writing & Content",
+      "skills": [
+        { "name": "Copywriting", "credits": 20, "description": "Rédaction persuasive, calls-to-action" },
+        { "name": "Technical Writing", "credits": 20, "description": "Documentation, guides, spécifications" },
+        { "name": "Content Writing", "credits": 15, "description": "Articles, blogs, newsletters" },
+        { "name": "Storytelling", "credits": 20, "description": "Narration, structure, engagement" },
+        { "name": "Translation", "credits": 20, "description": "Traduction créative, localisation" },
+        { "name": "UX Writing", "credits": 20, "description": "Microcopy, parcours utilisateur" }
+      ]
+    },
+    {
+      "category": "Game Development",
+      "skills": [
+        { "name": "Unity", "credits": 25, "description": "Développement 2D/3D, gameplay, UI" },
+        { "name": "Unreal Engine", "credits": 25, "description": "Blueprints, rendering, animation" },
+        { "name": "Game Design", "credits": 20, "description": "Mécaniques, niveaux, économie" },
+        { "name": "Level Design", "credits": 20, "description": "Layout, flow, environnements" },
+        { "name": "Character Animation", "credits": 25, "description": "Animation 2D/3D, rigging" },
+        { "name": "Game Audio", "credits": 20, "description": "Sound design, musique interactive" }
+      ]
+    },
+    {
+      "category": "Community & Social",
+      "skills": [
+        { "name": "Community Management", "credits": 20, "description": "Animation communauté, modération" },
+        { "name": "Social Media Management", "credits": 20, "description": "Stratégie sociale, planning" },
+        { "name": "Influencer Marketing", "credits": 20, "description": "Partenariats, campagnes" },
+        { "name": "Event Management", "credits": 20, "description": "Organisation événements digitaux" },
+        { "name": "Customer Success", "credits": 15, "description": "Support, onboarding, fidélisation" }
+      ]
+    },
+    {
+      "category": "Digital Business",
+      "skills": [
+        { "name": "Product Management", "credits": 25, "description": "Vision produit, roadmap, specs" },
+        { "name": "Digital Strategy", "credits": 25, "description": "Transformation digitale, innovation" },
+        { "name": "E-commerce", "credits": 20, "description": "Vente en ligne, CMS, optimisation" },
+        { "name": "Blockchain Business", "credits": 25, "description": "Tokenomics, smart contracts" },
+        { "name": "Digital Analytics", "credits": 20, "description": "Data analysis, reporting, insights" }
+      ]
+    }
+  ]
+  
