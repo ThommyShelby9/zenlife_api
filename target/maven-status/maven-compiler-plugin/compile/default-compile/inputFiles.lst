@@ -1,9 +1,11 @@
 /home/rostelmissimawu/Documents/zenlife_api/src/main/java/com/api/expo/models/Validation.java
 /home/rostelmissimawu/Documents/zenlife_api/src/main/java/com/api/expo/dto/RegisterRequest.java
+/home/rostelmissimawu/Documents/zenlife_api/src/main/java/com/api/expo/repository/TaskRepository.java
 /home/rostelmissimawu/Documents/zenlife_api/src/main/java/com/api/expo/models/WaterIntake.java
 /home/rostelmissimawu/Documents/zenlife_api/src/main/java/com/api/expo/controllers/UserController.java
 /home/rostelmissimawu/Documents/zenlife_api/src/main/java/com/api/expo/models/User.java
 /home/rostelmissimawu/Documents/zenlife_api/src/main/java/com/api/expo/services/CustomUserDetailsService.java
+/home/rostelmissimawu/Documents/zenlife_api/src/main/java/com/api/expo/dto/TaskDTO.java
 /home/rostelmissimawu/Documents/zenlife_api/src/main/java/com/api/expo/models/Notification.java
 /home/rostelmissimawu/Documents/zenlife_api/src/main/java/com/api/expo/services/ExpenseService.java
 /home/rostelmissimawu/Documents/zenlife_api/src/main/java/com/api/expo/services/DailyPlannerService.java
@@ -26,6 +28,7 @@
 /home/rostelmissimawu/Documents/zenlife_api/src/main/java/com/api/expo/repository/ExpenseCategoryRepository.java
 /home/rostelmissimawu/Documents/zenlife_api/src/main/java/com/api/expo/repository/PasswordResetTokenRepository.java
 /home/rostelmissimawu/Documents/zenlife_api/src/main/java/com/api/expo/events/WebSocketEventListener.java
+/home/rostelmissimawu/Documents/zenlife_api/src/main/java/com/api/expo/config/StaticResourceConfig.java
 /home/rostelmissimawu/Documents/zenlife_api/src/main/java/com/api/expo/config/SwaggerConfig.java
 /home/rostelmissimawu/Documents/zenlife_api/src/main/java/com/api/expo/services/UserService.java
 /home/rostelmissimawu/Documents/zenlife_api/src/main/java/com/api/expo/dto/CategoryData.java
@@ -48,12 +51,14 @@
 /home/rostelmissimawu/Documents/zenlife_api/src/main/java/com/api/expo/controllers/ControllerAdvice.java
 /home/rostelmissimawu/Documents/zenlife_api/src/main/java/com/api/expo/config/MultipartConfig.java
 /home/rostelmissimawu/Documents/zenlife_api/src/main/java/com/api/expo/models/Budget.java
+/home/rostelmissimawu/Documents/zenlife_api/src/main/java/com/api/expo/dto/BudgetDTO.java
 /home/rostelmissimawu/Documents/zenlife_api/src/main/java/com/api/expo/exceptions/AuthExecptions/AuthenticationException.java
 /home/rostelmissimawu/Documents/zenlife_api/src/main/java/com/api/expo/services/FileService.java
 /home/rostelmissimawu/Documents/zenlife_api/src/main/java/com/api/expo/repository/ExpenseRepository.java
 /home/rostelmissimawu/Documents/zenlife_api/src/main/java/com/api/expo/config/WebSocketConfig.java
 /home/rostelmissimawu/Documents/zenlife_api/src/main/java/com/api/expo/exceptions/ResourceNotFoundException.java
 /home/rostelmissimawu/Documents/zenlife_api/src/main/java/com/api/expo/models/AuthResponse.java
+/home/rostelmissimawu/Documents/zenlife_api/src/main/java/com/api/expo/dto/DailyPlannerDTO.java
 /home/rostelmissimawu/Documents/zenlife_api/src/main/java/com/api/expo/services/MailSenderService.java
 /home/rostelmissimawu/Documents/zenlife_api/src/main/java/com/api/expo/repository/WaterReminderSettingRepository.java
 /home/rostelmissimawu/Documents/zenlife_api/src/main/java/com/api/expo/controllers/DailyPlannerController.java
@@ -64,6 +69,7 @@
 /home/rostelmissimawu/Documents/zenlife_api/src/main/java/com/api/expo/controllers/FriendshipController.java
 /home/rostelmissimawu/Documents/zenlife_api/src/main/java/com/api/expo/controllers/AuthController.java
 /home/rostelmissimawu/Documents/zenlife_api/src/main/java/com/api/expo/config/JwtService.java
+/home/rostelmissimawu/Documents/zenlife_api/src/main/java/com/api/expo/seeders/ExpenseCategorySeeder.java
 /home/rostelmissimawu/Documents/zenlife_api/src/main/java/com/api/expo/controllers/PositiveThoughtController.java
 /home/rostelmissimawu/Documents/zenlife_api/src/main/java/com/api/expo/dto/ChatMessageDTO.java
 /home/rostelmissimawu/Documents/zenlife_api/src/main/java/com/api/expo/WebMvcConfigurer/WebConfig.java
@@ -76,6 +82,7 @@
 /home/rostelmissimawu/Documents/zenlife_api/src/main/java/com/api/expo/models/VoiceNote.java
 /home/rostelmissimawu/Documents/zenlife_api/src/main/java/com/api/expo/controllers/FinanceController.java
 /home/rostelmissimawu/Documents/zenlife_api/src/main/java/com/api/expo/exceptions/EmailSendingException.java
+/home/rostelmissimawu/Documents/zenlife_api/src/main/java/com/api/expo/models/Task.java
 /home/rostelmissimawu/Documents/zenlife_api/src/main/java/com/api/expo/dto/SkillData.java
 /home/rostelmissimawu/Documents/zenlife_api/src/main/java/com/api/expo/repository/ValidationRepository.java
 /home/rostelmissimawu/Documents/zenlife_api/src/main/java/com/api/expo/services/EmailTemplateService.java

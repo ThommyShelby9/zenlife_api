@@ -1,6 +1,7 @@
 // FinanceController.java
 package com.api.expo.controllers;
 
+import com.api.expo.dto.BudgetDTO;
 import com.api.expo.models.Budget;
 import com.api.expo.models.Expense;
 import com.api.expo.models.ExpenseCategory;
@@ -32,7 +33,7 @@ public class FinanceController {
     @GetMapping("/categories")
     public ResponseEntity<?> getUserCategories(@AuthenticationPrincipal UserDetails userDetails) {
         try {
-            List<ExpenseCategory> categories = expenseService.getUserCategories(userDetails);
+            List<ExpenseCategory> categories = expenseService.getUserCategories();
             return ResponseEntity.ok(categories);
         } catch (Exception e) {
             Map<String, Object> response = new HashMap<>();
@@ -219,26 +220,45 @@ public class FinanceController {
         }
     }
     
-    @PostMapping("/budgets")
-    public ResponseEntity<?> createOrUpdateBudget(
-            @RequestBody Budget budget,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        try {
-            Budget savedBudget = expenseService.createOrUpdateBudget(userDetails, budget);
-            
-            Map<String, Object> response = new HashMap<>();
-            response.put("status", "success");
-            response.put("message", "Budget enregistré avec succès");
-            response.put("budget", savedBudget);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("status", "error");
-            response.put("message", "Erreur lors de l'enregistrement du budget");
-            response.put("error", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+@PostMapping("/budgets")
+public ResponseEntity<?> createOrUpdateBudget(
+        @RequestBody BudgetDTO budgetDTO,
+        @AuthenticationPrincipal UserDetails userDetails) {
+    try {
+        // Conversion du DTO en objet Budget
+        Budget budget = new Budget();
+        if (budgetDTO.getId() != null) {
+            budget.setId(budgetDTO.getId());
         }
+        
+        YearMonth yearMonth = YearMonth.parse(budgetDTO.getYearMonth());
+        budget.setYearMonth(yearMonth);
+        budget.setAmount(budgetDTO.getAmount());
+        budget.setAlertThresholdPercentage(budgetDTO.getAlertThresholdPercentage());
+        budget.setNotes(budgetDTO.getNotes());
+        
+        // Gestion de la catégorie
+        if (budgetDTO.getCategoryId() != null && !budgetDTO.getCategoryId().isEmpty()) {
+            ExpenseCategory category = new ExpenseCategory();
+            category.setId(budgetDTO.getCategoryId());
+            budget.setCategory(category);
+        }
+        
+        Budget savedBudget = expenseService.createOrUpdateBudget(userDetails, budget);
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", "success");
+        response.put("message", "Budget enregistré avec succès");
+        response.put("budget", savedBudget);
+        return ResponseEntity.ok(response);
+    } catch (Exception e) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", "error");
+        response.put("message", "Erreur lors de l'enregistrement du budget");
+        response.put("error", e.getMessage());
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
+}
     
     @DeleteMapping("/budgets/{budgetId}")
     public ResponseEntity<?> deleteBudget(
@@ -273,6 +293,22 @@ public class FinanceController {
             Map<String, Object> response = new HashMap<>();
             response.put("status", "error");
             response.put("message", "Erreur lors de la récupération du résumé financier");
+            response.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+
+    @GetMapping("/expenses/recent")
+    public ResponseEntity<?> getRecentExpenses(
+            @RequestParam(defaultValue = "5") int limit,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            List<Expense> expenses = expenseService.getRecentExpenses(userDetails, limit);
+            return ResponseEntity.ok(expenses);
+        } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "error");
+            response.put("message", "Erreur lors de la récupération des dépenses récentes");
             response.put("error", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }

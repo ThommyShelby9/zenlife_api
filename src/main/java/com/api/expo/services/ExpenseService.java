@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -31,20 +32,35 @@ public class ExpenseService {
     private final BudgetRepository budgetRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
-    
-    // Gestion des catégories
-    public List<ExpenseCategory> getUserCategories(UserDetails userDetails) {
+
+    /**
+ * Récupère les dépenses les plus récentes d'un utilisateur
+ * @param userDetails Utilisateur authentifié
+ * @param limit Nombre maximum de dépenses à retourner
+ * @return Liste des dépenses récentes
+ */
+    public List<Expense> getRecentExpenses(UserDetails userDetails, int limit) {
         User user = userRepository.findByEmail(userDetails.getUsername())
             .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
             
-        return expenseCategoryRepository.findByUserIdOrderByNameAsc(user.getId());
+        // Récupérer les dépenses triées par date décroissante et limitées
+        return expenseRepository.findByUserIdOrderByDateDesc(user.getId())
+            .stream()
+            .limit(limit)
+            .toList();
+    }
+    
+    // Gestion des catégories
+    public List<ExpenseCategory> getUserCategories() {
+
+            
+        return expenseCategoryRepository.findAllByOrderByNameAsc();
     }
     
     public ExpenseCategory createCategory(UserDetails userDetails, ExpenseCategory category) {
         User user = userRepository.findByEmail(userDetails.getUsername())
             .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
             
-        category.setUser(user);
         category.setCreatedAt(Instant.now());
         category.setUpdatedAt(Instant.now());
         
@@ -58,9 +74,7 @@ public class ExpenseService {
         ExpenseCategory category = expenseCategoryRepository.findById(categoryId)
             .orElseThrow(() -> new RuntimeException("Catégorie non trouvée"));
             
-        if (!category.getUser().getId().equals(user.getId())) {
-            throw new RuntimeException("Vous n'êtes pas autorisé à modifier cette catégorie");
-        }
+
         
         category.setName(updatedCategory.getName());
         category.setIcon(updatedCategory.getIcon());
@@ -77,9 +91,7 @@ public class ExpenseService {
         ExpenseCategory category = expenseCategoryRepository.findById(categoryId)
             .orElseThrow(() -> new RuntimeException("Catégorie non trouvée"));
             
-        if (!category.getUser().getId().equals(user.getId())) {
-            throw new RuntimeException("Vous n'êtes pas autorisé à supprimer cette catégorie");
-        }
+
         
         // Vérifier s'il y a des dépenses associées à cette catégorie
         List<Expense> expenses = expenseRepository.findByUserIdAndCategoryIdOrderByDateDesc(user.getId(), categoryId);
@@ -113,9 +125,7 @@ public class ExpenseService {
         ExpenseCategory category = expenseCategoryRepository.findById(expense.getCategory().getId())
             .orElseThrow(() -> new RuntimeException("Catégorie non trouvée"));
             
-        if (!category.getUser().getId().equals(user.getId())) {
-            throw new RuntimeException("Vous n'êtes pas autorisé à utiliser cette catégorie");
-        }
+
         
         expense.setUser(user);
         expense.setCategory(category);
@@ -145,12 +155,10 @@ public class ExpenseService {
         ExpenseCategory category = expenseCategoryRepository.findById(updatedExpense.getCategory().getId())
             .orElseThrow(() -> new RuntimeException("Catégorie non trouvée"));
             
-        if (!category.getUser().getId().equals(user.getId())) {
-            throw new RuntimeException("Vous n'êtes pas autorisé à utiliser cette catégorie");
-        }
         
         expense.setCategory(category);
         expense.setAmount(updatedExpense.getAmount());
+        expense.setTitle(updatedExpense.getTitle()); // Utilisez le getter/setter généré par Lombok
         expense.setDate(updatedExpense.getDate());
         expense.setDescription(updatedExpense.getDescription());
         expense.setUpdatedAt(Instant.now());
@@ -183,11 +191,13 @@ public class ExpenseService {
     public Budget createOrUpdateBudget(UserDetails userDetails, Budget budget) {
         User user = userRepository.findByEmail(userDetails.getUsername())
             .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
-            
+        
+        // Vérifier si c'est un budget global ou un budget de catégorie
+        boolean isGlobalBudget = budget.getCategory() == null || budget.getCategory().getId() == null;
         Optional<Budget> existingBudget;
         
-        if (budget.getCategory() != null) {
-            // Budget pour une catégorie spécifique
+        if (!isGlobalBudget) {
+            // C'est un budget par catégorie
             existingBudget = budgetRepository.findByUserIdAndCategoryIdAndYearMonth(
                 user.getId(), budget.getCategory().getId(), budget.getYearMonth()
             );
@@ -196,16 +206,73 @@ public class ExpenseService {
             ExpenseCategory category = expenseCategoryRepository.findById(budget.getCategory().getId())
                 .orElseThrow(() -> new RuntimeException("Catégorie non trouvée"));
                 
-            if (!category.getUser().getId().equals(user.getId())) {
-                throw new RuntimeException("Vous n'êtes pas autorisé à utiliser cette catégorie");
+            
+            // Vérifier si le budget global existe et si le budget de catégorie ne le dépasse pas
+            Optional<Budget> globalBudget = budgetRepository.findByUserIdAndYearMonthAndCategoryIdIsNull(
+                user.getId(), budget.getYearMonth()
+            );
+            
+            if (globalBudget.isPresent()) {
+                // Calculer la somme des budgets de catégorie existants (excluant celui en cours de modification)
+                List<Budget> categoryBudgets = budgetRepository.findByUserIdAndYearMonth(user.getId(), budget.getYearMonth())
+                    .stream()
+                    .filter(b -> b.getCategory() != null && !b.getId().equals(budget.getId()))
+                    .collect(Collectors.toList());
+                    
+                BigDecimal totalCategoryBudgets = categoryBudgets.stream()
+                    .map(Budget::getAmount)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+                    
+                // Ajouter le montant du budget en cours de création/modification
+                totalCategoryBudgets = totalCategoryBudgets.add(budget.getAmount());
+                
+                // Vérifier si le total des budgets de catégorie dépasse le budget global
+                if (totalCategoryBudgets.compareTo(globalBudget.get().getAmount()) > 0) {
+                    throw new RuntimeException("Le total des sous-budgets ne peut pas dépasser le budget global");
+                }
             }
         } else {
-            // Budget global
+            // C'est un budget global
             existingBudget = budgetRepository.findByUserIdAndYearMonthAndCategoryIdIsNull(
                 user.getId(), budget.getYearMonth()
             );
+            
+            // Si ce budget global est inférieur à la somme des budgets de catégorie existants, on refuse
+            if (existingBudget.isEmpty()) {
+                List<Budget> categoryBudgets = budgetRepository.findByUserIdAndYearMonth(user.getId(), budget.getYearMonth())
+                    .stream()
+                    .filter(b -> b.getCategory() != null)
+                    .collect(Collectors.toList());
+                    
+                if (!categoryBudgets.isEmpty()) {
+                    BigDecimal totalCategoryBudgets = categoryBudgets.stream()
+                        .map(Budget::getAmount)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+                        
+                    if (budget.getAmount().compareTo(totalCategoryBudgets) < 0) {
+                        throw new RuntimeException("Le budget global ne peut pas être inférieur à la somme des sous-budgets existants");
+                    }
+                }
+            } else {
+                // Si on modifie un budget global existant
+                List<Budget> categoryBudgets = budgetRepository.findByUserIdAndYearMonth(user.getId(), budget.getYearMonth())
+                    .stream()
+                    .filter(b -> b.getCategory() != null)
+                    .collect(Collectors.toList());
+                    
+                if (!categoryBudgets.isEmpty()) {
+                    BigDecimal totalCategoryBudgets = categoryBudgets.stream()
+                        .map(Budget::getAmount)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+                        
+                    if (budget.getAmount().compareTo(totalCategoryBudgets) < 0) {
+                        throw new RuntimeException("Le budget global ne peut pas être inférieur à la somme des sous-budgets existants");
+                    }
+                }
+            }
         }
         
+        // Suite du code existant pour sauvegarde...
         Budget budgetToSave;
         if (existingBudget.isPresent()) {
             budgetToSave = existingBudget.get();
@@ -306,61 +373,83 @@ public class ExpenseService {
         }
     }
     
-    // Résumé financier
     public Map<String, Object> getMonthlyFinancialSummary(UserDetails userDetails, YearMonth yearMonth) {
-        User user = userRepository.findByEmail(userDetails.getUsername())
-            .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
-            
-        LocalDate startDate = yearMonth.atDay(1);
-        LocalDate endDate = yearMonth.atEndOfMonth();
+    User user = userRepository.findByEmail(userDetails.getUsername())
+        .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
         
-        // Récupérer toutes les dépenses du mois
-        List<Expense> expenses = expenseRepository.findByUserIdAndDateBetweenOrderByDateDesc(
-            user.getId(), startDate, endDate
-        );
+    LocalDate startDate = yearMonth.atDay(1);
+    LocalDate endDate = yearMonth.atEndOfMonth();
+    
+    // Récupérer toutes les dépenses du mois
+    List<Expense> expenses = expenseRepository.findByUserIdAndDateBetweenOrderByDateDesc(
+        user.getId(), startDate, endDate
+    );
+    
+    // Calculer le total des dépenses
+    BigDecimal totalExpenses = expenses.stream()
+        .map(Expense::getAmount)
+        .reduce(BigDecimal.ZERO, BigDecimal::add);
+    
+    // Récupérer tous les budgets
+    List<Budget> budgets = budgetRepository.findByUserIdAndYearMonth(user.getId(), yearMonth);
+    
+    // Récupérer le budget global s'il existe
+    Optional<Budget> globalBudget = budgets.stream()
+        .filter(b -> b.getCategory() == null)
+        .findFirst();
+    
+    // Récupérer les budgets par catégorie
+    List<Budget> categoryBudgets = budgets.stream()
+        .filter(b -> b.getCategory() != null)
+        .collect(Collectors.toList());
+    
+    // Préparer le résumé
+    Map<String, Object> summary = new HashMap<>();
+    summary.put("month", yearMonth.toString());
+    summary.put("totalExpenses", totalExpenses);
+    
+    if (globalBudget.isPresent()) {
+        BigDecimal budgetAmount = globalBudget.get().getAmount();
+        summary.put("budgetAmount", budgetAmount);
+        summary.put("remaining", budgetAmount.subtract(totalExpenses));
         
-        // Calculer le total des dépenses
-        BigDecimal totalExpenses = expenses.stream()
-            .map(Expense::getAmount)
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
-        
-        // Récupérer tous les budgets
-        List<Budget> budgets = budgetRepository.findByUserIdAndYearMonth(user.getId(), yearMonth);
-        
-        // Récupérer le budget global s'il existe
-        Optional<Budget> globalBudget = budgets.stream()
-            .filter(b -> b.getCategory() == null)
-            .findFirst();
-        
-        // Préparer le résumé
-        Map<String, Object> summary = new HashMap<>();
-        summary.put("month", yearMonth.toString());
-        summary.put("totalExpenses", totalExpenses);
-        
-        if (globalBudget.isPresent()) {
-            BigDecimal budgetAmount = globalBudget.get().getAmount();
-            summary.put("budgetAmount", budgetAmount);
-            summary.put("remaining", budgetAmount.subtract(totalExpenses));
-            
-            // Calculer le pourcentage du budget utilisé
-            @SuppressWarnings("deprecation")
-            int percentage = totalExpenses.multiply(new BigDecimal(100))
-                .divide(budgetAmount, 0, BigDecimal.ROUND_HALF_UP)
-                .intValue();
-            summary.put("percentageUsed", percentage);
-        }
-        
-        // Calculer les dépenses par catégorie
-        Map<String, BigDecimal> expensesByCategory = new HashMap<>();
-        for (Expense expense : expenses) {
-            String categoryName = expense.getCategory().getName();
-            expensesByCategory.put(
-                categoryName,
-                expensesByCategory.getOrDefault(categoryName, BigDecimal.ZERO).add(expense.getAmount())
-            );
-        }
-        summary.put("byCategory", expensesByCategory);
-        
-        return summary;
+        @SuppressWarnings("deprecation")
+        int percentage = totalExpenses.multiply(new BigDecimal(100))
+            .divide(budgetAmount, 0, BigDecimal.ROUND_HALF_UP)
+            .intValue();
+        summary.put("percentageUsed", percentage);
     }
+    
+    // Calculer les dépenses et budgets par catégorie
+    Map<String, BigDecimal> expensesByCategory = new HashMap<>();
+    Map<String, BigDecimal> budgetsByCategory = new HashMap<>();
+    
+    for (Expense expense : expenses) {
+        String categoryName = expense.getCategory().getName();
+        expensesByCategory.put(
+            categoryName,
+            expensesByCategory.getOrDefault(categoryName, BigDecimal.ZERO).add(expense.getAmount())
+        );
+    }
+    
+    for (Budget budget : categoryBudgets) {
+        String categoryName = budget.getCategory().getName();
+        budgetsByCategory.put(categoryName, budget.getAmount());
+    }
+    
+    summary.put("byCategory", expensesByCategory);
+    summary.put("budgetByCategory", budgetsByCategory);
+    
+    // Ajouter les dépenses récentes limitées à 5
+    List<Expense> recentExpenses = expenses.stream()
+        .sorted((e1, e2) -> e2.getDate().compareTo(e1.getDate()))
+        .limit(5)
+        .toList();
+    summary.put("recentExpenses", recentExpenses);
+    
+    return summary;
+}
+    
+
+    
 }

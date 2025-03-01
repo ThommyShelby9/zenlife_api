@@ -35,6 +35,8 @@ public class Expense {
     private LocalDate date;
     
     private String description;
+
+    private String title;
     
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;

@@ -1,4 +1,3 @@
-// Mise à jour du NotificationService.java pour ajouter des méthodes système
 package com.api.expo.services;
 
 import com.api.expo.models.Notification;
@@ -11,7 +10,10 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -50,10 +52,6 @@ public class NotificationService {
         return savedNotification;
     }
     
-/*************  ✨ Codeium Command ⭐  *************/
-    /**
-
-/******  cc3d5521-b1b3-4344-aef0-34ddda1e38c7  *******/
     public List<Notification> getUserNotifications(UserDetails userDetails) {
         // Récupérer l'objet User à partir du UserDetails
         User user = userRepository.findByEmail(userDetails.getUsername())
@@ -121,5 +119,41 @@ public class NotificationService {
         if (notification.getUser().getId().equals(user.getId())) {
             notificationRepository.delete(notification);
         }
+    }
+    
+    /**
+     * Envoyer une notification de rappel d'eau
+     */
+    public Notification sendWaterReminderNotification(User user, String message) {
+        return createSystemNotification(
+            user,
+            "WATER_REMINDER",
+            message != null ? message : "Rappel: C'est l'heure de boire de l'eau! 💦",
+            "/water-tracker"
+        );
+    }
+    
+    /**
+     * Créer une notification de progression d'hydratation
+     */
+    public Notification createWaterProgressNotification(User user, int percentage) {
+        String message;
+        
+        if (percentage >= 100) {
+            message = "Félicitations! Vous avez atteint votre objectif d'hydratation aujourd'hui! 🎉💧";
+        } else if (percentage >= 75) {
+            message = "Vous avez atteint " + percentage + "% de votre objectif d'hydratation journalier! 💧";
+        } else if (percentage >= 50) {
+            message = "Vous êtes à mi-chemin de votre objectif d'hydratation journalier. Continuez! 💧";
+        } else {
+            message = "N'oubliez pas de boire de l'eau régulièrement! Vous êtes à " + percentage + "% de votre objectif. 💧";
+        }
+        
+        return createSystemNotification(
+            user,
+            "WATER_PROGRESS",
+            message,
+            "/water-tracker"
+        );
     }
 }

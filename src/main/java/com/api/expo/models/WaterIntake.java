@@ -1,6 +1,6 @@
-// WaterIntake.java
 package com.api.expo.models;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -26,6 +26,7 @@ public class WaterIntake {
     private Integer quantityML;
     
     @Column(name = "intake_time", nullable = false)
+    @JsonProperty("timestamp") // Cette annotation mappe intakeTime à "timestamp" dans le JSON
     private Instant intakeTime;
     
     @Column(name = "created_at", nullable = false)
@@ -35,5 +36,11 @@ public class WaterIntake {
         this.id = UUID.randomUUID().toString();
         this.createdAt = Instant.now();
         this.intakeTime = Instant.now();
+    }
+    
+    // Getter supplémentaire pour assurer la compatibilité avec le frontend
+    @JsonProperty("timestamp")
+    public String getTimestamp() {
+        return intakeTime != null ? intakeTime.toString() : null;
     }
 }
