@@ -19,4 +19,7 @@ public interface UserRepository extends JpaRepository<User, String> {
     
     @Query("SELECT u FROM User u WHERE LOWER(u.username) LIKE LOWER(CONCAT('%', ?1, '%')) OR LOWER(u.fullName) LIKE LOWER(CONCAT('%', ?1, '%'))")
     List<User> findByUsernameOrFullNameContainingIgnoreCase(String searchTerm);
+
+    @Query("SELECT u FROM User u WHERE u.email != ?1 AND (LOWER(u.fullName) LIKE LOWER(CONCAT('%', ?2, '%')) OR LOWER(u.username) LIKE LOWER(CONCAT('%', ?2, '%')) OR LOWER(u.email) LIKE LOWER(CONCAT('%', ?2, '%')))")
+List<User> findBySearchQuery(String currentUserEmail, String searchQuery);
 }

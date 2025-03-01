@@ -3,6 +3,8 @@ package com.api.expo.events;
 
 import com.api.expo.models.User;
 import com.api.expo.repository.UserRepository;
+import com.api.expo.services.UserOnlineStatusService;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
@@ -16,13 +18,13 @@ import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-
 @Component
 @RequiredArgsConstructor
 public class WebSocketEventListener {
 
     private final SimpMessageSendingOperations messagingTemplate;
     private final UserRepository userRepository;
+    private final UserOnlineStatusService userOnlineStatusService;
 
     @EventListener
     public void handleWebSocketConnectListener(SessionConnectedEvent event) {
@@ -36,12 +38,8 @@ public class WebSocketEventListener {
             if (userOpt.isPresent()) {
                 User user = userOpt.get();
                 
-                // Envoyer une notification de connexion à tous les autres utilisateurs
-                Map<String, Object> connectionStatus = new HashMap<>();
-                connectionStatus.put("userId", user.getId());
-                connectionStatus.put("status", "ONLINE");
-                
-                messagingTemplate.convertAndSend("/topic/user-status", connectionStatus);
+                // Utiliser notre service pour gérer le statut en ligne
+                userOnlineStatusService.publishUserStatus(user.getId(), true);
             }
         }
     }
@@ -58,12 +56,8 @@ public class WebSocketEventListener {
             if (userOpt.isPresent()) {
                 User user = userOpt.get();
                 
-                // Envoyer une notification de déconnexion à tous les autres utilisateurs
-                Map<String, Object> connectionStatus = new HashMap<>();
-                connectionStatus.put("userId", user.getId());
-                connectionStatus.put("status", "OFFLINE");
-                
-                messagingTemplate.convertAndSend("/topic/user-status", connectionStatus);
+                // Utiliser notre service pour gérer le statut en ligne
+                userOnlineStatusService.publishUserStatus(user.getId(), false);
             }
         }
     }

@@ -2,6 +2,8 @@
 package com.api.expo.repository;
 
 import com.api.expo.models.Friendship;
+import com.api.expo.models.User;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -22,4 +24,10 @@ public interface FriendshipRepository extends JpaRepository<Friendship, String> 
     
     @Query("SELECT f FROM Friendship f WHERE f.requester.id = ?1 AND f.status = 'PENDING'")
     List<Friendship> findSentFriendRequestsByUser(String userId);
+
+    @Query("SELECT f FROM Friendship f WHERE f.requester.id = ?1 AND f.status = ?2")
+List<Friendship> findByRequesterIdAndStatus(String userId, String status);
+
+@Query("SELECT u FROM User u WHERE u.id != ?2 AND (LOWER(u.fullName) LIKE LOWER(CONCAT('%', ?1, '%')) OR LOWER(u.username) LIKE LOWER(CONCAT('%', ?1, '%')) OR LOWER(u.email) LIKE LOWER(CONCAT('%', ?1, '%')))")
+List<User> searchUsers(String query, String currentUserId);
 }

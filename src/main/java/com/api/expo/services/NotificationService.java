@@ -156,4 +156,41 @@ public class NotificationService {
             "/water-tracker"
         );
     }
+
+    // Ajouter cette méthode surchargée à votre NotificationService.java
+
+public Notification createSystemNotification(User user, String type, String content, String link, Map<String, Object> additionalData) {
+    Notification notification = new Notification();
+    notification.setUser(user);
+    notification.setType(type);
+    notification.setContent(content);
+    notification.setLink(link);
+    notification.setCreatedAt(Instant.now());
+    notification.setRead(false);
+    
+    Notification savedNotification = notificationRepository.save(notification);
+    
+    // Créer le message complet avec les données additionnelles
+    Map<String, Object> messageData = new HashMap<>();
+    messageData.put("id", savedNotification.getId());
+    messageData.put("type", savedNotification.getType());
+    messageData.put("content", savedNotification.getContent());
+    messageData.put("link", savedNotification.getLink());
+    messageData.put("createdAt", savedNotification.getCreatedAt());
+    messageData.put("read", savedNotification.getRead());
+    
+    // Ajouter les données additionnelles
+    if (additionalData != null) {
+        messageData.putAll(additionalData);
+    }
+    
+    // Envoyer à l'utilisateur spécifique avec toutes les données
+    messagingTemplate.convertAndSendToUser(
+        user.getId(),
+        "/queue/notifications",
+        messageData
+    );
+    
+    return savedNotification;
+}
 }

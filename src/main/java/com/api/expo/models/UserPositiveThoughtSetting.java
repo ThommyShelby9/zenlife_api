@@ -1,4 +1,3 @@
-// UserPositiveThoughtSetting.java
 package com.api.expo.models;
 
 import jakarta.persistence.*;
@@ -30,6 +29,15 @@ public class UserPositiveThoughtSetting {
     
     @Column(nullable = false)
     private String preferredCategories = "all"; // Catégories séparées par des virgules ou "all"
+    
+    @Column(nullable = false)
+    private Boolean notificationEnabled = true;
+    
+    @Column(nullable = false)
+    private Boolean displayOnLockScreen = false;
+    
+    @Column(name = "last_notification_sent_at")
+    private Instant lastNotificationSentAt;
     
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;

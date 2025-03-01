@@ -10,7 +10,9 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -21,6 +23,8 @@ public class FriendshipService {
     private final FriendshipRepository friendshipRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final UserOnlineStatusService userOnlineStatusService;
+
     
     public List<User> getUserFriends(UserDetails userDetails) {
         User user = userRepository.findByEmail(userDetails.getUsername())
@@ -246,5 +250,46 @@ public class FriendshipService {
         } else {
             throw new RuntimeException("Relation non trouvée");
         }
+    }
+
+     public List<Map<String, Object>> getUserFriendsWithStatus(UserDetails userDetails) {
+        User user = userRepository.findByEmail(userDetails.getUsername())
+            .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+            
+        List<Friendship> friendships = friendshipRepository.findAcceptedFriendshipsByUserId(user.getId());
+        
+        // Extraire les amis
+        List<User> friends = friendships.stream()
+            .map(friendship -> {
+                if (friendship.getRequester().getId().equals(user.getId())) {
+                    return friendship.getAddressee();
+                } else {
+                    return friendship.getRequester();
+                }
+            })
+            .collect(Collectors.toList());
+            
+        // Récupérer les statuts en ligne
+        List<String> friendIds = friends.stream()
+            .map(User::getId)
+            .collect(Collectors.toList());
+            
+        Map<String, Boolean> onlineStatus = userOnlineStatusService.getOnlineStatusForUsers(friendIds);
+        
+        // Construire la réponse
+        return friends.stream()
+            .map(friend -> {
+                Map<String, Object> friendData = new HashMap<>();
+                friendData.put("id", friend.getId());
+                friendData.put("fullName", friend.getFullName());
+                friendData.put("username", friend.getUsername());
+                friendData.put("email", friend.getEmail());
+                friendData.put("profilePictureUrl", friend.getProfilePictureUrl());
+                friendData.put("online", onlineStatus.getOrDefault(friend.getId(), false));
+                // Ajouter d'autres propriétés si nécessaire
+                
+                return friendData;
+            })
+            .collect(Collectors.toList());
     }
 }

@@ -105,6 +105,7 @@ public class PositiveThoughtController {
             @RequestBody UserPositiveThoughtSetting settings,
             @AuthenticationPrincipal UserDetails userDetails) {
         try {
+            // Les propriétés à vérifier et mettre à jour avec les nouvelles options
             UserPositiveThoughtSetting updatedSettings = positiveThoughtService.updateUserSettings(userDetails, settings);
             
             Map<String, Object> response = new HashMap<>();
@@ -116,6 +117,26 @@ public class PositiveThoughtController {
             Map<String, Object> response = new HashMap<>();
             response.put("status", "error");
             response.put("message", "Erreur lors de la mise à jour des paramètres");
+            response.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+    
+    // Ajouter ce nouvel endpoint pour les notifications de test
+    @PostMapping("/test-notification")
+    public ResponseEntity<?> sendTestNotification(@AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            PositiveThought thought = positiveThoughtService.getRandomPositiveThought(null);
+            positiveThoughtService.sendTestPositiveThoughtNotification(userDetails, thought);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "success");
+            response.put("message", "Notification de test envoyée avec succès");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "error");
+            response.put("message", "Erreur lors de l'envoi de la notification de test");
             response.put("error", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }

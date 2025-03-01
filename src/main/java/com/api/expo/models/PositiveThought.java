@@ -1,4 +1,3 @@
-// PositiveThought.java
 package com.api.expo.models;
 
 import jakarta.persistence.*;
@@ -21,11 +20,17 @@ public class PositiveThought {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
     
+    @Column(nullable = true)
+    private String author;
+    
     @Column(nullable = false)
     private String category;
     
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
+    
+    @Column(name = "updated_at")
+    private Instant updatedAt;
     
     public PositiveThought() {
         this.id = UUID.randomUUID().toString();

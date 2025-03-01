@@ -13,7 +13,9 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 
@@ -66,28 +68,72 @@ public class PositiveThoughtService {
         }
     }
     
-    public UserPositiveThoughtSetting updateUserSettings(UserDetails userDetails, UserPositiveThoughtSetting updatedSettings) {
-        User user = userRepository.findByEmail(userDetails.getUsername())
-            .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
-            
-        Optional<UserPositiveThoughtSetting> existingSettings = userPositiveThoughtSettingRepository.findByUserId(user.getId());
+   public UserPositiveThoughtSetting updateUserSettings(UserDetails userDetails, UserPositiveThoughtSetting updatedSettings) {
+    User user = userRepository.findByEmail(userDetails.getUsername())
+        .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
         
-        UserPositiveThoughtSetting settingsToSave;
-        if (existingSettings.isPresent()) {
-            settingsToSave = existingSettings.get();
-            settingsToSave.setEnabled(updatedSettings.getEnabled());
-            settingsToSave.setFrequencyPerDay(updatedSettings.getFrequencyPerDay());
-            settingsToSave.setPreferredCategories(updatedSettings.getPreferredCategories());
-            settingsToSave.setUpdatedAt(Instant.now());
-        } else {
-            settingsToSave = updatedSettings;
-            settingsToSave.setUser(user);
-            settingsToSave.setCreatedAt(Instant.now());
-            settingsToSave.setUpdatedAt(Instant.now());
-        }
+    Optional<UserPositiveThoughtSetting> existingSettings = userPositiveThoughtSettingRepository.findByUserId(user.getId());
+    
+    UserPositiveThoughtSetting settingsToSave;
+    if (existingSettings.isPresent()) {
+        settingsToSave = existingSettings.get();
+        settingsToSave.setEnabled(updatedSettings.getEnabled());
+        settingsToSave.setFrequencyPerDay(updatedSettings.getFrequencyPerDay());
+        settingsToSave.setPreferredCategories(updatedSettings.getPreferredCategories());
         
-        return userPositiveThoughtSettingRepository.save(settingsToSave);
+        // Nouveaux champs ajoutés
+        settingsToSave.setNotificationEnabled(updatedSettings.getNotificationEnabled());
+        settingsToSave.setDisplayOnLockScreen(updatedSettings.getDisplayOnLockScreen());
+        
+        settingsToSave.setUpdatedAt(Instant.now());
+    } else {
+        settingsToSave = updatedSettings;
+        settingsToSave.setUser(user);
+        settingsToSave.setCreatedAt(Instant.now());
+        settingsToSave.setUpdatedAt(Instant.now());
     }
+    
+    return userPositiveThoughtSettingRepository.save(settingsToSave);
+}
+
+// Ajouter une méthode pour envoyer une notification de test
+public void sendTestPositiveThoughtNotification(UserDetails userDetails, PositiveThought thought) {
+    User user = userRepository.findByEmail(userDetails.getUsername())
+        .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+    
+    Optional<UserPositiveThoughtSetting> settingsOpt = userPositiveThoughtSettingRepository.findByUserId(user.getId());
+    
+    // Créer un map de données pour la notification
+    Map<String, Object> notificationData = new HashMap<>();
+    notificationData.put("type", "POSITIVE_THOUGHT");
+    notificationData.put("content", thought.getContent());
+    
+    if (thought.getAuthor() != null && !((String) thought.getAuthor()).isEmpty()) {
+        notificationData.put("author", thought.getAuthor());
+    } else {
+        notificationData.put("author", "Anonyme");
+    }
+    
+    notificationData.put("category", thought.getCategory());
+    notificationData.put("thought", thought);
+    notificationData.put("link", "/positive-thoughts");
+    
+    // Si des paramètres existent, utiliser la configuration d'affichage sur écran verrouillé
+    if (settingsOpt.isPresent()) {
+        notificationData.put("displayOnLockScreen", settingsOpt.get().getDisplayOnLockScreen());
+    } else {
+        notificationData.put("displayOnLockScreen", false);
+    }
+    
+    // Envoyer la notification via WebSocket
+    notificationService.createSystemNotification(
+        user,
+        "POSITIVE_THOUGHT",
+        thought.getContent(),
+        "/positive-thoughts",
+        notificationData
+    );
+}
     
     public void sendPositiveThought(String userId) {
         User user = userRepository.findById(userId)
