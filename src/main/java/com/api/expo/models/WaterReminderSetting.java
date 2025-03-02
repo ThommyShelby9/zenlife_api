@@ -56,12 +56,12 @@ public class WaterReminderSetting {
     }
     
     @Column(nullable = false)
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
-    private Instant startTime; // Début de la période de rappels quotidiens
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX", timezone = "UTC")   
+     private Instant startTime; // Début de la période de rappels quotidiens
     
     @Column(nullable = false)
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
-    private Instant endTime; // Fin de la période de rappels quotidiens
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX", timezone = "UTC")
+        private Instant endTime; // Fin de la période de rappels quotidiens
     
     @ElementCollection
     @CollectionTable(name = "CUSTOM_GLASS_SIZES", joinColumns = @JoinColumn(name = "water_reminder_setting_id"))
