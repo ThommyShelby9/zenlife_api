@@ -7,14 +7,21 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Random;
 
 @Repository
 public interface PositiveThoughtRepository extends JpaRepository<PositiveThought, String> {
     List<PositiveThought> findByCategory(String category);
-    
-    @Query(value = "SELECT * FROM positive_thoughts WHERE category = ?1 ORDER BY RAND() LIMIT 1", nativeQuery = true)
-    PositiveThought findRandomByCategory(String category);
-    
-    @Query(value = "SELECT * FROM positive_thoughts ORDER BY RAND() LIMIT 1", nativeQuery = true)
-    PositiveThought findRandom();
+
+    default PositiveThought findRandomByCategory(String category) {
+        List<PositiveThought> thoughts = findByCategory(category);
+        if (thoughts.isEmpty()) return null;
+        return thoughts.get(new Random().nextInt(thoughts.size()));
+    }
+
+    default PositiveThought findRandom() {
+        List<PositiveThought> all = findAll();
+        if (all.isEmpty()) return null;
+        return all.get(new Random().nextInt(all.size()));
+    }
 }
