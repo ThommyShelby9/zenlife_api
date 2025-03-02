@@ -7,6 +7,7 @@ import com.api.expo.models.User;
 import com.api.expo.models.VoiceNote;
 import com.api.expo.repository.ChatMessageRepository;
 import com.api.expo.repository.FileAttachmentRepository;
+import com.api.expo.repository.FriendshipRepository;
 import com.api.expo.repository.UserRepository;
 import com.api.expo.repository.VoiceNoteRepository;
 import lombok.RequiredArgsConstructor;
@@ -28,7 +29,8 @@ public class ChatService {
     private final VoiceNoteRepository voiceNoteRepository;
     private final NotificationService notificationService;
     private final SimpMessageSendingOperations messagingTemplate;
-    
+    private final UserOnlineStatusService userOnlineStatusService;
+    private final FriendshipRepository friendshipRepository;    
     public String sendMessage(UserDetails userDetails, User receiverObj, String content) {
         // Récupérer l'objet User à partir du UserDetails
         User sender = userRepository.findByEmail(userDetails.getUsername())
@@ -161,20 +163,61 @@ public class ChatService {
     }
     
     public List<Map<String, Object>> getUserContacts(String userId) {
-        // Récupérer tous les utilisateurs avec qui l'utilisateur actuel a échangé des messages
-        List<User> contacts = chatMessageRepository.findContactsByUserId(userId);
+        // 1. Récupérer tous les utilisateurs avec qui l'utilisateur actuel a échangé des messages
+        List<User> messageContacts = chatMessageRepository.findContactsByUserId(userId);
         
+        // 2. NOUVEAU: Récupérer tous les amis de l'utilisateur (même sans messages)
+        List<User> friends = friendshipRepository.findAcceptedFriendshipsByUserId(userId).stream()
+            .map(friendship -> {
+                if (friendship.getRequester().getId().equals(userId)) {
+                    return friendship.getAddressee();
+                } else {
+                    return friendship.getRequester();
+                }
+            })
+            .collect(Collectors.toList());
+        
+        // 3. Combiner les deux listes et éliminer les doublons
+        Set<String> contactIds = new HashSet<>();
+        List<User> allContacts = new ArrayList<>();
+        
+        // Ajouter d'abord tous les contacts avec qui il y a eu des messages
+        for (User contact : messageContacts) {
+            if (!contactIds.contains(contact.getId())) {
+                contactIds.add(contact.getId());
+                allContacts.add(contact);
+            }
+        }
+        
+        // Puis ajouter les amis qui ne sont pas encore dans la liste
+        for (User friend : friends) {
+            if (!contactIds.contains(friend.getId())) {
+                contactIds.add(friend.getId());
+                allContacts.add(friend);
+            }
+        }
+        
+        // 4. Obtenir les détails pour chaque contact
         List<Map<String, Object>> contactsWithDetails = new ArrayList<>();
         
-        for (User contact : contacts) {
+        for (User contact : allContacts) {
             Map<String, Object> contactDetails = new HashMap<>();
             contactDetails.put("id", contact.getId());
-            contactDetails.put("name", contact.getFullName());
+            contactDetails.put("fullName", contact.getFullName());
             contactDetails.put("username", contact.getUsername());
             contactDetails.put("email", contact.getEmail());
             contactDetails.put("profilePictureUrl", contact.getProfilePictureUrl());
             
-            // Obtenir le dernier message échangé
+            // Vérifier le statut en ligne (si cette fonctionnalité est implémentée)
+            boolean isOnline = false;
+            try {
+                isOnline = userOnlineStatusService.isUserOnline(contact.getId());
+            } catch (Exception e) {
+                // Ignorer l'erreur si le service n'est pas disponible
+            }
+            contactDetails.put("online", isOnline);
+            
+            // Obtenir le dernier message échangé (s'il existe)
             Optional<ChatMessage> lastMessage = chatMessageRepository.findLastMessageBetweenUsers(userId, contact.getId());
             
             if (lastMessage.isPresent()) {

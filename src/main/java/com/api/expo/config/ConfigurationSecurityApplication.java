@@ -79,6 +79,10 @@ public class ConfigurationSecurityApplication {
                                 // Autorisez l'accès public aux ressources statiques
                 .requestMatchers("/api/files/images/**").permitAll()
                 .requestMatchers("/api/files/profile-pictures/**").permitAll()
+                .requestMatchers("/api/files/attachments/**").permitAll()
+                .requestMatchers("/api/files/voice-notes/**").permitAll()
+                .requestMatchers("/api/files/videos/**").permitAll()
+
 
 
 

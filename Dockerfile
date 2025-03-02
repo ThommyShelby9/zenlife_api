@@ -1,11 +1,6 @@
-# Build stage
-FROM maven:3.8.4-openjdk-17 as builder
+FROM openjdk:17-jdk-slim
 WORKDIR /app
-COPY . .
-RUN mvn clean package -DskipTests
-
-# Run stage
-FROM eclipse-temurin:17-jdk-alpine
-VOLUME /tmp
-COPY --from=builder /app/target/*.jar app.jar
-ENTRYPOINT ["java","-jar","/app.jar"]
+COPY target/*.jar app.jar
+RUN mkdir -p /app/uploads
+EXPOSE 8080
+ENTRYPOINT ["java", "-Dspring.profiles.active=prod", "-jar", "/app/app.jar"]

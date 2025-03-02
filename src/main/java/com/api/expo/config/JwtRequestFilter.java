@@ -37,7 +37,12 @@ public class JwtRequestFilter extends OncePerRequestFilter {
         "/api/auth/login",
         "/api/auth/register",
         "/api/auth/verify-email",
-        "/api/auth/**"
+        "/api/auth/**",
+        "/api/files/**",
+        "/api/files/attachments/**",
+        "/api/files/voice-notes/**"
+
+
 
             );
 

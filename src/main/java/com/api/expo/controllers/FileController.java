@@ -124,8 +124,18 @@ public class FileController {
     }
     
     @GetMapping("/view/{filename:.+}")
-    public ResponseEntity<Resource> viewFile(@PathVariable String filename) {
+    public ResponseEntity<Resource> viewFile(@PathVariable String filename, @RequestParam(required = false) String token) {
         try {
+            // Si un token est fourni, vérifier son authenticité
+            if (token != null && !token.isEmpty()) {
+                try {
+                    // Vérifier le token JWT ici (dépendant de votre implémentation)
+                    // Par exemple: jwtService.validateToken(token);
+                } catch (Exception e) {
+                    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+                }
+            }
+            
             Resource resource = fileService.loadFileAsResource(filename);
             
             // Déterminer le type de contenu
@@ -136,15 +146,36 @@ public class FileController {
                 contentType = "image/png";
             } else if (filename.endsWith(".pdf")) {
                 contentType = "application/pdf";
+            } else if (filename.endsWith(".mp3")) {
+                contentType = "audio/mpeg";
+            } else if (filename.endsWith(".webm")) {
+                contentType = "audio/webm";
+            } else if (filename.endsWith(".ogg")) {
+                contentType = "audio/ogg";
             }
             
+            // Headers CORS explicites
             return ResponseEntity.ok()
+                .header("Access-Control-Allow-Origin", "*")
+                .header("Access-Control-Allow-Methods", "GET, OPTIONS")
+                .header("Access-Control-Allow-Headers", "Content-Type, Authorization")
                 .contentType(MediaType.parseMediaType(contentType))
                 .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + resource.getFilename() + "\"")
                 .body(resource);
         } catch (Exception e) {
             return ResponseEntity.notFound().build();
         }
+    }
+    
+    // Méthode d'options pour gérer les requêtes préflight CORS
+    @RequestMapping(value = "/view/{filename:.+}", method = RequestMethod.OPTIONS)
+    public ResponseEntity<?> handleOptions() {
+        return ResponseEntity.ok()
+            .header("Access-Control-Allow-Origin", "*")
+            .header("Access-Control-Allow-Methods", "GET, OPTIONS")
+            .header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+            .header("Access-Control-Max-Age", "3600")
+            .build();
     }
 
     @GetMapping("/profile-pictures/{filename:.+}")

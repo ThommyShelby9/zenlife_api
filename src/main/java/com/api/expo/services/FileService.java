@@ -81,13 +81,30 @@ public class FileService {
     }
     
     public Resource loadFileAsResource(String filename) throws MalformedURLException {
-        Path filePath = Paths.get(uploadDir).resolve(filename).normalize();
-        Resource resource = new UrlResource(filePath.toUri());
-        
-        if (resource.exists()) {
-            return resource;
-        } else {
+        try {
+            // Rechercher d'abord le fichier dans le répertoire principal des uploads
+            Path filePath = Paths.get(uploadDir).resolve(filename).normalize();
+            Resource resource = new UrlResource(filePath.toUri());
+            
+            if (resource.exists()) {
+                return resource;
+            }
+            
+            // Si non trouvé, chercher dans les sous-répertoires
+            // (pour les cas où storagePath inclut un sous-dossier)
+            String[] possibleSubdirs = {"attachments", "voice_notes"};
+            for (String subdir : possibleSubdirs) {
+                Path subdirPath = Paths.get(uploadDir, subdir).resolve(filename).normalize();
+                Resource subdirResource = new UrlResource(subdirPath.toUri());
+                if (subdirResource.exists()) {
+                    return subdirResource;
+                }
+            }
+            
+            // Si toujours pas trouvé, jeter une exception
             throw new RuntimeException("Fichier non trouvé: " + filename);
+        } catch (Exception e) {
+            throw new RuntimeException("Erreur lors du chargement du fichier: " + filename, e);
         }
     }
     
@@ -112,7 +129,7 @@ public class FileService {
         VoiceNote voiceNote = new VoiceNote();
         voiceNote.setMessage(message);
         voiceNote.setDurationSeconds(durationSeconds);
-        voiceNote.setStoragePath(uniqueFilename);
+        voiceNote.setStoragePath("voice_notes/" + uniqueFilename);
         voiceNote.setCreatedAt(Instant.now());
         
         return voiceNoteRepository.save(voiceNote);
