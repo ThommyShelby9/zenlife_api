@@ -54,7 +54,6 @@ public class WaterReminderService {
     private final WaterIntakeRepository waterIntakeRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
-    private final SimpMessageSendingOperations messagingTemplate;
     
     public WaterReminderSetting getUserSettings(UserDetails userDetails) {
         User user = userRepository.findByEmail(userDetails.getUsername())

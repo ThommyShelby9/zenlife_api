@@ -13,7 +13,6 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -22,6 +21,7 @@ public class NotificationService {
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
     private final SimpMessageSendingOperations messagingTemplate;
+    private final FCMPushService fcmPushService; // Nouvelle dépendance pour FCM
     
     public Notification createNotification(UserDetails userDetails, String type, String content, String link) {
         // Récupérer l'objet User à partir du UserDetails
@@ -42,14 +42,78 @@ public class NotificationService {
         
         Notification savedNotification = notificationRepository.save(notification);
         
-        // Envoyer à l'utilisateur spécifique
+        // Envoyer à l'utilisateur spécifique via WebSocket (pour les utilisateurs connectés)
         messagingTemplate.convertAndSendToUser(
             user.getId(),
             "/queue/notifications",
             savedNotification
         );
         
+        // Envoyer également via FCM (pour les utilisateurs non connectés)
+        sendPushNotification(user, type, content, link);
+        
         return savedNotification;
+    }
+    
+    /**
+     * Méthode privée pour envoyer une notification push via FCM
+     */
+    private void sendPushNotification(User user, String type, String content, String link) {
+        // Déterminer le titre et l'icône en fonction du type de notification
+        String title = getTitleForNotificationType(type);
+        String icon = getIconForNotificationType(type);
+        
+        // Envoyer la notification via FCM
+        fcmPushService.sendNotification(
+            user,
+            title,
+            content,
+            icon,
+            type, // Utiliser le type comme tag
+            link  // URL de redirection
+        );
+    }
+    
+    /**
+     * Déterminer le titre approprié en fonction du type de notification
+     */
+    private String getTitleForNotificationType(String type) {
+        switch (type) {
+            case "WATER_REMINDER":
+                return "Rappel d'hydratation";
+            case "WATER_PROGRESS":
+                return "Progression d'hydratation";
+            case "POSITIVE_THOUGHT":
+                return "Pensée positive";
+            case "TASK_REMINDER":
+                return "Rappel de tâche";
+            case "FRIEND_REQUEST":
+                return "Demande d'ami";
+            case "FRIEND_ACCEPTED":
+                return "Demande acceptée";
+            default:
+                return "ZenLife";
+        }
+    }
+    
+    /**
+     * Déterminer l'icône appropriée en fonction du type de notification
+     */
+    private String getIconForNotificationType(String type) {
+        switch (type) {
+            case "WATER_REMINDER":
+            case "WATER_PROGRESS":
+                return "/img/water-icon.png";
+            case "POSITIVE_THOUGHT":
+                return "/img/positive-thought-icon.png";
+            case "TASK_REMINDER":
+                return "/img/task-icon.png";
+            case "FRIEND_REQUEST":
+            case "FRIEND_ACCEPTED":
+                return "/img/friend-icon.png";
+            default:
+                return "/img/logo.png";
+        }
     }
     
     public List<Notification> getUserNotifications(UserDetails userDetails) {
@@ -157,40 +221,41 @@ public class NotificationService {
         );
     }
 
-    // Ajouter cette méthode surchargée à votre NotificationService.java
-
-public Notification createSystemNotification(User user, String type, String content, String link, Map<String, Object> additionalData) {
-    Notification notification = new Notification();
-    notification.setUser(user);
-    notification.setType(type);
-    notification.setContent(content);
-    notification.setLink(link);
-    notification.setCreatedAt(Instant.now());
-    notification.setRead(false);
-    
-    Notification savedNotification = notificationRepository.save(notification);
-    
-    // Créer le message complet avec les données additionnelles
-    Map<String, Object> messageData = new HashMap<>();
-    messageData.put("id", savedNotification.getId());
-    messageData.put("type", savedNotification.getType());
-    messageData.put("content", savedNotification.getContent());
-    messageData.put("link", savedNotification.getLink());
-    messageData.put("createdAt", savedNotification.getCreatedAt());
-    messageData.put("read", savedNotification.getRead());
-    
-    // Ajouter les données additionnelles
-    if (additionalData != null) {
-        messageData.putAll(additionalData);
+    public Notification createSystemNotification(User user, String type, String content, String link, Map<String, Object> additionalData) {
+        Notification notification = new Notification();
+        notification.setUser(user);
+        notification.setType(type);
+        notification.setContent(content);
+        notification.setLink(link);
+        notification.setCreatedAt(Instant.now());
+        notification.setRead(false);
+        
+        Notification savedNotification = notificationRepository.save(notification);
+        
+        // Créer le message complet avec les données additionnelles
+        Map<String, Object> messageData = new HashMap<>();
+        messageData.put("id", savedNotification.getId());
+        messageData.put("type", savedNotification.getType());
+        messageData.put("content", savedNotification.getContent());
+        messageData.put("link", savedNotification.getLink());
+        messageData.put("createdAt", savedNotification.getCreatedAt());
+        messageData.put("read", savedNotification.getRead());
+        
+        // Ajouter les données additionnelles
+        if (additionalData != null) {
+            messageData.putAll(additionalData);
+        }
+        
+        // Envoyer à l'utilisateur spécifique avec toutes les données via WebSocket
+        messagingTemplate.convertAndSendToUser(
+            user.getId(),
+            "/queue/notifications",
+            messageData
+        );
+        
+        // Envoyer également via FCM (pour les notifications push)
+        sendPushNotification(user, type, content, link);
+        
+        return savedNotification;
     }
-    
-    // Envoyer à l'utilisateur spécifique avec toutes les données
-    messagingTemplate.convertAndSendToUser(
-        user.getId(),
-        "/queue/notifications",
-        messageData
-    );
-    
-    return savedNotification;
-}
 }

@@ -27,6 +27,8 @@ import java.nio.file.StandardCopyOption;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import lombok.extern.slf4j.Slf4j;
+
 
 @Service
 @RequiredArgsConstructor
@@ -36,6 +38,8 @@ public class FileService {
     private final VoiceNoteRepository voiceNoteRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final UserRepository userRepository;
+    private final CloudinaryService cloudinaryService;
+
     
     @Value("${app.upload.dir}")  // Au lieu de file.upload-dir
     private String uploadDir;
@@ -136,29 +140,36 @@ public class FileService {
     }
     
     // Gestion des photos de profil
-    public String storeProfilePicture(UserDetails userDetails, MultipartFile file) throws IOException {
-        User user = userRepository.findByEmail(userDetails.getUsername())
+    /* Stocke l'image de profil d'un utilisateur dans Cloudinary
+    * @param user l'utilisateur
+    * @param file l'image à stocker
+    * @return l'URL de l'image stockée
+    * @throws IOException en cas d'erreur lors du stockage
+    */
+   public String storeProfilePicture(UserDetails userDetails, MultipartFile file) throws IOException {
+       try {
+            User user = userRepository.findByEmail(userDetails.getUsername())
             .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
-            
-        String fileExtension = StringUtils.getFilenameExtension(file.getOriginalFilename());
-        String uniqueFilename = "profile_" + user.getId() + "." + fileExtension;
-        
-        // Créer le répertoire s'il n'existe pas
-        Path uploadPath = Paths.get(uploadDir, "profile_pictures");
-        if (!Files.exists(uploadPath)) {
-            Files.createDirectories(uploadPath);
-        }
-        
-        // Stocker le fichier
-        Path targetLocation = uploadPath.resolve(uniqueFilename);
-        Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
-        
-        // Mettre à jour l'utilisateur
-        user.setProfilePicture(uniqueFilename);
-        userRepository.save(user);
-        
-        return uniqueFilename;
-    }
+           // Supprimer l'ancienne image si elle existe et n'est pas une URL complète
+           String oldProfilePicture = user.getProfilePicture();
+           if (oldProfilePicture != null && !oldProfilePicture.startsWith("http")) {
+               // L'ancienne image n'était pas sur Cloudinary, pas besoin de la supprimer
+           }
+           
+           // Télécharger la nouvelle image
+           String imageUrl = cloudinaryService.uploadProfilePicture(file, user.getId());
+           
+           // Mettre à jour l'utilisateur avec l'URL complète
+           user.setProfilePicture(imageUrl);
+           user.setProfilePictureUrl(imageUrl);
+
+           userRepository.save(user);
+           
+           return imageUrl;
+       } catch (IOException e) {
+        throw new RuntimeException("Erreur lors du stockage de l'image de profil", e);
+       }
+   }
 
     // Ajout dans FileService.java
 public Resource loadProfilePictureAsResource(String filename) throws IOException {

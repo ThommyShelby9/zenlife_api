@@ -255,8 +255,8 @@ public User register(RegisterRequest registerRequest) throws MessagingException 
         MultipartFile profilePicture = updateRequest.getProfilePicture();
         if (profilePicture != null && !profilePicture.isEmpty()) {
             try {
-                String filename = fileService.storeProfilePicture(user, profilePicture);
-                user.setProfilePicture(filename);
+                String imageUrl = fileService.storeProfilePicture(user, profilePicture);
+                user.setProfilePicture(imageUrl);
             } catch (Exception e) {
                 throw new RuntimeException("Impossible de sauvegarder l'image de profil", e);
             }

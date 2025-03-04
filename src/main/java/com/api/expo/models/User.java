@@ -78,7 +78,11 @@ public class User implements UserDetails {
     @JsonProperty("profilePictureUrl")
     public String getProfilePictureUrl() {
         if (profilePicture != null) {
-            // Modifié pour utiliser le bon chemin qui sera accessible sans authentification
+            // Vérifier si c'est déjà une URL complète (Cloudinary)
+            if (profilePicture.startsWith("http")) {
+                return profilePicture;
+            }
+            // Sinon c'est un fichier local
             return "/api/files/profile-pictures/" + profilePicture;
         }
         return null;
@@ -173,5 +177,10 @@ public class User implements UserDetails {
     // Constructeur avec un UUID
     public User(UUID id) {
         this.id = UUID.randomUUID().toString();
+    }
+
+    public void setProfilePictureUrl(String imageUrl) {
+        // Stocke l'URL telle quelle, qu'elle soit locale ou Cloudinary
+        this.profilePicture = imageUrl;
     }
 }
