@@ -2,7 +2,6 @@ package com.api.expo.WebMvcConfigurer;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -28,7 +27,7 @@ public class WebConfig implements WebMvcConfigurer {
     } */
 
      @Override
-    @SuppressWarnings({ "deprecation", "null", "unchecked" })
+    @SuppressWarnings({ "deprecation" })
     public void configureMessageConverters(List<HttpMessageConverter<?>> converters) {
         MappingJackson2HttpMessageConverter jsonConverter = new MappingJackson2HttpMessageConverter();
         List<MediaType> mediaTypes = java.util.Arrays.asList(

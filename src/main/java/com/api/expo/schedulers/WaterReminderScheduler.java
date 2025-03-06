@@ -1,8 +1,6 @@
 package com.api.expo.schedulers;
 
-import com.api.expo.models.User;
 import com.api.expo.models.WaterReminderSetting;
-import com.api.expo.repository.UserRepository;
 import com.api.expo.repository.WaterReminderSettingRepository;
 import com.api.expo.services.WaterReminderService;
 import lombok.RequiredArgsConstructor;
@@ -10,7 +8,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import java.time.Instant;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.List;
@@ -21,7 +18,6 @@ import java.util.List;
 public class WaterReminderScheduler {
 
     private final WaterReminderSettingRepository waterReminderSettingRepository;
-    private final UserRepository userRepository;
     private final WaterReminderService waterReminderService;
 
     /**
@@ -31,7 +27,6 @@ public class WaterReminderScheduler {
     @Scheduled(cron = "0 0 * * * *") // Exécute à chaque heure pile
     public void checkAndSendWaterReminders() {
         log.info("Vérification des rappels d'hydratation...");
-        Instant now = Instant.now();
         LocalTime currentTime = LocalTime.now(ZoneId.systemDefault());
         
         // Récupérer tous les paramètres de rappel actifs

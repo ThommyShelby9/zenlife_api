@@ -7,22 +7,17 @@ import com.api.expo.services.UserOnlineStatusService;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
-import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
-import org.springframework.messaging.simp.SimpMessageSendingOperations;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.messaging.SessionConnectedEvent;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 @Component
 @RequiredArgsConstructor
 public class WebSocketEventListener {
 
-    private final SimpMessageSendingOperations messagingTemplate;
     private final UserRepository userRepository;
     private final UserOnlineStatusService userOnlineStatusService;
 

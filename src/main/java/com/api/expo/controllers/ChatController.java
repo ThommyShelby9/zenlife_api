@@ -1,7 +1,6 @@
 package com.api.expo.controllers;
 
 import com.api.expo.dto.ChatMessageDTO;
-import com.api.expo.models.ChatMessage;
 import com.api.expo.models.User;
 import com.api.expo.repository.UserRepository;
 import com.api.expo.services.ChatService;

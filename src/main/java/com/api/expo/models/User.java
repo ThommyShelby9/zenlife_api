@@ -1,7 +1,6 @@
 // User.java (mise à jour)
 package com.api.expo.models;
 
-import java.sql.Date;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
@@ -11,7 +10,6 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import jakarta.persistence.*;

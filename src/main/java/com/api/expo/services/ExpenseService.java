@@ -58,9 +58,7 @@ public class ExpenseService {
     }
     
     public ExpenseCategory createCategory(UserDetails userDetails, ExpenseCategory category) {
-        User user = userRepository.findByEmail(userDetails.getUsername())
-            .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
-            
+ 
         category.setCreatedAt(Instant.now());
         category.setUpdatedAt(Instant.now());
         
@@ -68,9 +66,7 @@ public class ExpenseService {
     }
     
     public ExpenseCategory updateCategory(UserDetails userDetails, String categoryId, ExpenseCategory updatedCategory) {
-        User user = userRepository.findByEmail(userDetails.getUsername())
-            .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
-            
+
         ExpenseCategory category = expenseCategoryRepository.findById(categoryId)
             .orElseThrow(() -> new RuntimeException("Catégorie non trouvée"));
             
@@ -202,9 +198,6 @@ public class ExpenseService {
                 user.getId(), budget.getCategory().getId(), budget.getYearMonth()
             );
             
-            // Vérifier que la catégorie appartient à l'utilisateur
-            ExpenseCategory category = expenseCategoryRepository.findById(budget.getCategory().getId())
-                .orElseThrow(() -> new RuntimeException("Catégorie non trouvée"));
                 
             
             // Vérifier si le budget global existe et si le budget de catégorie ne le dépasse pas

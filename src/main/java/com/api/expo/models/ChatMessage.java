@@ -6,8 +6,6 @@ import lombok.Setter;
 import java.time.Instant;
 import java.util.UUID;
 
-import org.springframework.security.core.userdetails.UserDetails;
-
 @Entity
 @Getter
 @Setter

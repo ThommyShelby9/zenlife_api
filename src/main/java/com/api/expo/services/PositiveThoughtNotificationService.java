@@ -5,14 +5,12 @@ import com.api.expo.models.User;
 import com.api.expo.models.UserPositiveThoughtSetting;
 import com.api.expo.repository.PositiveThoughtRepository;
 import com.api.expo.repository.UserPositiveThoughtSettingRepository;
-import com.api.expo.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,7 +23,6 @@ public class PositiveThoughtNotificationService {
     
     private final PositiveThoughtRepository positiveThoughtRepository;
     private final UserPositiveThoughtSettingRepository userPositiveThoughtSettingRepository;
-    private final UserRepository userRepository;
     private final NotificationService notificationService;
     
     /**

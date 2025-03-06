@@ -1,7 +1,6 @@
 package com.api.expo.seeders;
 
 import com.api.expo.models.ExpenseCategory;
-import com.api.expo.models.User;
 import com.api.expo.repository.ExpenseCategoryRepository;
 import com.api.expo.repository.UserRepository;
 import org.springframework.boot.CommandLineRunner;

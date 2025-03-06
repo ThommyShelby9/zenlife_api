@@ -6,7 +6,6 @@ import com.api.expo.models.DailyPlanner;
 import com.api.expo.models.Task;
 import com.api.expo.models.User;
 import com.api.expo.repository.DailyPlannerRepository;
-import com.api.expo.repository.TaskRepository;
 import com.api.expo.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -26,7 +25,6 @@ public class DailyPlannerService {
     
     private final DailyPlannerRepository dailyPlannerRepository;
     private final UserRepository userRepository;
-    private final TaskRepository taskRepository;
     
     @Transactional
     public DailyPlannerDTO getTodayPlanner(UserDetails userDetails) {

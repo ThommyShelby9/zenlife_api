@@ -5,7 +5,6 @@ import com.api.expo.models.User;
 import com.api.expo.repository.FriendshipRepository;
 import com.api.expo.repository.UserRepository;
 import com.api.expo.services.FriendshipService;
-import com.api.expo.services.NotificationService;
 import com.api.expo.services.UserOnlineStatusService;
 
 import lombok.RequiredArgsConstructor;
@@ -34,7 +33,6 @@ public class FriendshipController {
     private final UserRepository userRepository;
     private final FriendshipRepository friendshipRepository;
     private final UserOnlineStatusService userOnlineStatusService;
-    private final NotificationService notificationService;
     
     //==========================================================================
     // Endpoints de récupération de données
@@ -47,7 +45,6 @@ public class FriendshipController {
     public ResponseEntity<?> getUserFriends(@AuthenticationPrincipal UserDetails userDetails) {
         try {
             // Récupérer l'utilisateur actuel
-            User currentUser = getUserFromUserDetails(userDetails);
             
             // Récupérer les amis via le service
             List<User> friends = friendshipService.getUserFriends(userDetails);
@@ -77,7 +74,6 @@ public class FriendshipController {
     @GetMapping("/requests/pending")
     public ResponseEntity<?> getPendingFriendRequests(@AuthenticationPrincipal UserDetails userDetails) {
         try {
-            User currentUser = getUserFromUserDetails(userDetails);
             List<Friendship> friendships = friendshipService.getPendingFriendRequests(userDetails);
             
             List<Map<String, Object>> requests = friendships.stream()
@@ -96,7 +92,6 @@ public class FriendshipController {
     @GetMapping("/requests/sent")
     public ResponseEntity<?> getSentFriendRequests(@AuthenticationPrincipal UserDetails userDetails) {
         try {
-            User currentUser = getUserFromUserDetails(userDetails);
             List<Friendship> friendships = friendshipService.getSentFriendRequests(userDetails);
             
             List<Map<String, Object>> requests = friendships.stream()

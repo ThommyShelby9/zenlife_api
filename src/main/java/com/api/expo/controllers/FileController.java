@@ -1,7 +1,6 @@
 package com.api.expo.controllers;
 
 import com.api.expo.models.FileAttachment;
-import com.api.expo.models.VoiceNote;
 import com.api.expo.services.FileService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

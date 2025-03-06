@@ -5,7 +5,6 @@ import jakarta.mail.internet.MimeMessage;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 
-import java.io.IOException;
 import java.time.Instant;
 import java.util.*;
 
