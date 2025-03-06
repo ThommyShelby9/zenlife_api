@@ -1,4 +1,3 @@
-// Mise à jour du ChatService.java pour ajouter des fonctionnalités
 package com.api.expo.services;
 
 import com.api.expo.models.ChatMessage;
@@ -11,6 +10,7 @@ import com.api.expo.repository.FriendshipRepository;
 import com.api.expo.repository.UserRepository;
 import com.api.expo.repository.VoiceNoteRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessageSendingOperations;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ChatService {
     
     private final ChatMessageRepository chatMessageRepository;
@@ -30,17 +31,16 @@ public class ChatService {
     private final NotificationService notificationService;
     private final SimpMessageSendingOperations messagingTemplate;
     private final UserOnlineStatusService userOnlineStatusService;
-    private final FriendshipRepository friendshipRepository;    
-    public String sendMessage(UserDetails userDetails, User receiverObj, String content) {
-        // Récupérer l'objet User à partir du UserDetails
+    private final FriendshipRepository friendshipRepository;
+    
+    /**
+     * Envoie un message avec possibilité de répondre à un autre message
+     */
+    public String sendMessage(UserDetails userDetails, User receiver, String content, String replyToMessageId) {
+        // Récupérer l'expéditeur
         User sender = userRepository.findByEmail(userDetails.getUsername())
             .orElseThrow(() -> new RuntimeException("Utilisateur expéditeur non trouvé"));
-            
-        // Utiliser l'ID du receiver pour récupérer l'objet User complet depuis la base de données
-        String receiverId = receiverObj.getId();
-        User receiver = userRepository.findById(receiverId)
-            .orElseThrow(() -> new RuntimeException("Utilisateur destinataire non trouvé"));
-            
+        
         ChatMessage message = new ChatMessage();
         message.setSender(sender);
         message.setReceiver(receiver);
@@ -49,13 +49,20 @@ public class ChatService {
         message.setSentAt(Instant.now());
         message.setRead(false);
         
+        // Ajouter la référence au message auquel on répond si présent
+        if (replyToMessageId != null && !replyToMessageId.isEmpty()) {
+            ChatMessage originalMessage = chatMessageRepository.findById(replyToMessageId)
+                .orElse(null);
+            message.setReplyToMessage(originalMessage);
+        }
+        
         ChatMessage savedMessage = chatMessageRepository.save(message);
         
         // Envoyer au destinataire spécifique via WebSocket
         messagingTemplate.convertAndSendToUser(
             receiver.getId(),
             "/queue/messages",
-            savedMessage
+            enrichMessageWithAttachments(savedMessage)
         );
         
         // Créer une notification pour le destinataire
@@ -69,51 +76,11 @@ public class ChatService {
         return savedMessage.getId();
     }
     
-    public String sendMessageWithAttachments(UserDetails userDetails, User receiver, String content, List<FileAttachment> attachments) {
-        // D'abord envoyer le message
-        String messageId = sendMessage(userDetails, receiver, content);
-        
-        // Puis associer les pièces jointes au message
-        // Cette étape est généralement gérée par le service de fichiers
-        
-        return messageId;
-    }
-    
-    public String sendVoiceNote(UserDetails userDetails, User receiver, VoiceNote voiceNote) {
-        // Récupérer l'objet User à partir du UserDetails
-        User sender = userRepository.findByEmail(userDetails.getUsername())
-            .orElseThrow(() -> new RuntimeException("Utilisateur expéditeur non trouvé"));
-            
-        // Créer un message avec un contenu spécial pour les notes vocales
-        ChatMessage message = new ChatMessage();
-        message.setSender(sender);
-        message.setReceiver(receiver);
-        message.setContent("[NOTE_VOCALE]");
-        message.setTimestamp(Instant.now());
-        message.setSentAt(Instant.now());
-        message.setRead(false);
-        
-        ChatMessage savedMessage = chatMessageRepository.save(message);
-        
-        // Associer la note vocale au message
-        // Cette étape est généralement gérée par le service de fichiers
-        
-        // Envoyer au destinataire spécifique
-        messagingTemplate.convertAndSendToUser(
-            receiver.getId(),
-            "/queue/messages",
-            savedMessage
-        );
-        
-        // Créer une notification pour le destinataire
-        notificationService.createSystemNotification(
-            receiver,
-            "NEW_VOICE_NOTE",
-            "Nouvelle note vocale de " + sender.getFullName(),
-            "/chat/" + sender.getId()
-        );
-        
-        return savedMessage.getId();
+    /**
+     * Méthode de compatibilité avec l'ancien code
+     */
+    public String sendMessage(UserDetails userDetails, User receiver, String content) {
+        return sendMessage(userDetails, receiver, content, null);
     }
     
     public List<ChatMessage> getConversation(String user1Id, String user2Id) {
@@ -163,10 +130,12 @@ public class ChatService {
     }
     
     public List<Map<String, Object>> getUserContacts(String userId) {
+        // Code existant inchangé...
+        
         // 1. Récupérer tous les utilisateurs avec qui l'utilisateur actuel a échangé des messages
         List<User> messageContacts = chatMessageRepository.findContactsByUserId(userId);
         
-        // 2. NOUVEAU: Récupérer tous les amis de l'utilisateur (même sans messages)
+        // 2. Récupérer tous les amis de l'utilisateur (même sans messages)
         List<User> friends = friendshipRepository.findAcceptedFriendshipsByUserId(userId).stream()
             .map(friendship -> {
                 if (friendship.getRequester().getId().equals(userId)) {
@@ -206,15 +175,12 @@ public class ChatService {
             contactDetails.put("fullName", contact.getFullName());
             contactDetails.put("username", contact.getUsername());
             contactDetails.put("email", contact.getEmail());
+            
+            // Utiliser profilePictureUrl pour Cloudinary
             contactDetails.put("profilePictureUrl", contact.getProfilePictureUrl());
             
-            // Vérifier le statut en ligne (si cette fonctionnalité est implémentée)
-            boolean isOnline = false;
-            try {
-                isOnline = userOnlineStatusService.isUserOnline(contact.getId());
-            } catch (Exception e) {
-                // Ignorer l'erreur si le service n'est pas disponible
-            }
+            // Vérifier le statut en ligne
+            boolean isOnline = userOnlineStatusService.isUserOnline(contact.getId());
             contactDetails.put("online", isOnline);
             
             // Obtenir le dernier message échangé (s'il existe)
@@ -275,55 +241,75 @@ public class ChatService {
         return contactsWithDetails;
     }
     
+    /**
+     * Enrichit un message avec ses pièces jointes et les informations de réponse
+     */
     public Map<String, Object> enrichMessageWithAttachments(ChatMessage message) {
         Map<String, Object> enrichedMessage = new HashMap<>();
         
-        // Copier les propriétés du message
-        enrichedMessage.put("id", message.getId());
-        enrichedMessage.put("senderId", message.getSender().getId());
-        enrichedMessage.put("senderName", message.getSender().getFullName());
-        enrichedMessage.put("senderUsername", message.getSender().getUsername());
-        enrichedMessage.put("senderProfilePicture", message.getSender().getProfilePictureUrl());
-        enrichedMessage.put("receiverId", message.getReceiver().getId());
-        enrichedMessage.put("content", message.getContent());
-        enrichedMessage.put("timestamp", message.getTimestamp());
-        enrichedMessage.put("isRead", message.isRead());
-        enrichedMessage.put("readAt", message.getReadAt());
+        // Informations sur l'expéditeur
+        enrichedMessage.put("sender", Map.of(
+            "id", message.getSender().getId(),
+            "fullName", message.getSender().getFullName(),
+            "profilePictureUrl", message.getSender().getProfilePictureUrl() != null ? 
+                message.getSender().getProfilePictureUrl() : ""
+        ));
         
-        // Vérifier si c'est une note vocale
-        if ("[NOTE_VOCALE]".equals(message.getContent())) {
-            enrichedMessage.put("isVoiceNote", true);
-            
-            Optional<VoiceNote> voiceNote = voiceNoteRepository.findByMessageId(message.getId());
-            if (voiceNote.isPresent()) {
-                Map<String, Object> voiceNoteMap = new HashMap<>();
-                voiceNoteMap.put("durationSeconds", voiceNote.get().getDurationSeconds());
-                voiceNoteMap.put("url", "/api/files/voice-notes/" + voiceNote.get().getStoragePath());
-                enrichedMessage.put("voiceNote", voiceNoteMap);
-            }
-        } else {
-            enrichedMessage.put("isVoiceNote", false);
+        // Informations sur le destinataire
+        enrichedMessage.put("receiver", Map.of(
+            "id", message.getReceiver().getId()
+        ));
+        
+        // Informations de base sur le message
+        enrichedMessage.put("id", message.getId());
+        enrichedMessage.put("content", message.getContent());
+        enrichedMessage.put("timestamp", message.getTimestamp().toString());
+        enrichedMessage.put("read", message.isRead());
+        enrichedMessage.put("readAt", message.getReadAt() != null ? message.getReadAt().toString() : null);
+        
+        // Ajouter les informations sur le message auquel on répond (si présent)
+        if (message.getReplyToMessage() != null) {
+            Map<String, Object> replyInfo = new HashMap<>();
+            replyInfo.put("messageId", message.getReplyToMessage().getId());
+            replyInfo.put("content", message.getReplyToMessage().getContent());
+            replyInfo.put("senderId", message.getReplyToMessage().getSender().getId());
+            replyInfo.put("senderName", message.getReplyToMessage().getSender().getFullName());
+            enrichedMessage.put("replyTo", replyInfo);
         }
         
         // Ajouter les pièces jointes
+        List<Map<String, Object>> attachmentDetails = new ArrayList<>();
+        
+        // Récupérer toutes les pièces jointes
         List<FileAttachment> attachments = fileAttachmentRepository.findByMessageId(message.getId());
-        if (!attachments.isEmpty()) {
-            List<Map<String, Object>> attachmentDetails = attachments.stream()
-                .map(attachment -> {
-                    Map<String, Object> attachMap = new HashMap<>();
-                    attachMap.put("id", attachment.getId());
-                    attachMap.put("filename", attachment.getFilename());
-                    attachMap.put("contentType", attachment.getContentType());
-                    attachMap.put("size", attachment.getFileSize());
-                    attachMap.put("url", "/api/files/attachments/" + attachment.getStoragePath());
-                    return attachMap;
-                })
-                .collect(Collectors.toList());
-                
-            enrichedMessage.put("attachments", attachmentDetails);
-        } else {
-            enrichedMessage.put("attachments", Collections.emptyList());
+        for (FileAttachment attachment : attachments) {
+            Map<String, Object> attachmentInfo = new HashMap<>();
+            attachmentInfo.put("id", attachment.getId());
+            attachmentInfo.put("filename", attachment.getFilename());
+            attachmentInfo.put("contentType", attachment.getContentType());
+            attachmentInfo.put("size", attachment.getFileSize());
+            
+            // Utiliser directement l'URL Cloudinary si disponible
+            if (attachment.getStoragePath().startsWith("http")) {
+                attachmentInfo.put("url", attachment.getStoragePath());
+            } else {
+                // Sinon, construire une URL locale
+                attachmentInfo.put("url", "/api/files/view/" + attachment.getStoragePath());
+            }
+            
+            // Si c'est un fichier audio, vérifier s'il s'agit d'une note vocale
+            if (attachment.getContentType().startsWith("audio/")) {
+                Optional<VoiceNote> voiceNote = voiceNoteRepository.findByMessageId(message.getId());
+                if (voiceNote.isPresent()) {
+                    attachmentInfo.put("durationSeconds", voiceNote.get().getDurationSeconds());
+                    attachmentInfo.put("isVoiceNote", true);
+                }
+            }
+            
+            attachmentDetails.add(attachmentInfo);
         }
+        
+        enrichedMessage.put("attachments", attachmentDetails);
         
         return enrichedMessage;
     }
@@ -331,8 +317,11 @@ public class ChatService {
     public List<Map<String, Object>> getEnrichedConversation(String user1Id, String user2Id) {
         List<ChatMessage> messages = chatMessageRepository.findByConversation(user1Id, user2Id);
         
-        return messages.stream()
-            .map(this::enrichMessageWithAttachments)
-            .collect(Collectors.toList());
+        List<Map<String, Object>> enrichedMessages = new ArrayList<>();
+        for (ChatMessage message : messages) {
+            enrichedMessages.add(enrichMessageWithAttachments(message));
+        }
+        
+        return enrichedMessages;
     }
 }

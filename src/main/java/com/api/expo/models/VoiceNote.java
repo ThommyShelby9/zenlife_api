@@ -1,4 +1,3 @@
-// VoiceNote.java
 package com.api.expo.models;
 
 import jakarta.persistence.*;
@@ -22,11 +21,20 @@ public class VoiceNote {
     @JoinColumn(name = "message_id", nullable = false)
     private ChatMessage message;
     
-    @Column(name = "duration_seconds", nullable = false)
-    private Integer durationSeconds;
+    @Column(nullable = false)
+    private String filename;
+    
+    @Column(nullable = false)
+    private String contentType;
+    
+    @Column(name = "file_size", nullable = false)
+    private Long fileSize;
     
     @Column(name = "storage_path", nullable = false)
     private String storagePath;
+    
+    @Column(name = "duration_seconds", nullable = false)
+    private Double durationSeconds;
     
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;

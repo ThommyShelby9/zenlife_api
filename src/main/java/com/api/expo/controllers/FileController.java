@@ -1,10 +1,10 @@
-// FileController.java
 package com.api.expo.controllers;
 
 import com.api.expo.models.FileAttachment;
 import com.api.expo.models.VoiceNote;
 import com.api.expo.services.FileService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -23,6 +23,7 @@ import java.util.Map;
 @RequestMapping("/api/files")
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*", maxAge = 3600)
+@Slf4j
 public class FileController {
     
     private final FileService fileService;
@@ -33,14 +34,19 @@ public class FileController {
             @RequestParam("messageId") String messageId,
             @AuthenticationPrincipal UserDetails userDetails) {
         try {
-            FileAttachment attachment = fileService.storeFile(file, messageId);
+            // La méthode storeFile retourne maintenant Map<String, Object>
+            Map<String, Object> attachmentInfo = fileService.storeFile(file, messageId);
             
             Map<String, Object> response = new HashMap<>();
             response.put("status", "success");
             response.put("message", "Fichier téléchargé avec succès");
-            response.put("attachment", attachment);
+            
+            // On peut directement ajouter les infos de l'attachement
+            response.putAll(attachmentInfo);
+            
             return ResponseEntity.ok(response);
         } catch (Exception e) {
+            log.error("Erreur lors du téléchargement du fichier", e);
             Map<String, Object> response = new HashMap<>();
             response.put("status", "error");
             response.put("message", "Erreur lors du téléchargement du fichier");
@@ -48,22 +54,23 @@ public class FileController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
-    
     @PostMapping("/voice-note")
     public ResponseEntity<?> uploadVoiceNote(
             @RequestParam("file") MultipartFile file,
             @RequestParam("messageId") String messageId,
-            @RequestParam("durationSeconds") Integer durationSeconds,
+            @RequestParam("durationSeconds") Double durationSeconds,
             @AuthenticationPrincipal UserDetails userDetails) {
         try {
-            VoiceNote voiceNote = fileService.storeVoiceNote(file, messageId, durationSeconds);
+            Map<String, Object> voiceNoteInfo = fileService.saveVoiceNote(file, messageId, durationSeconds);
             
             Map<String, Object> response = new HashMap<>();
             response.put("status", "success");
             response.put("message", "Note vocale téléchargée avec succès");
-            response.put("voiceNote", voiceNote);
+            response.put("voiceNote", voiceNoteInfo);
+            
             return ResponseEntity.ok(response);
         } catch (Exception e) {
+            log.error("Erreur lors du téléchargement de la note vocale", e);
             Map<String, Object> response = new HashMap<>();
             response.put("status", "error");
             response.put("message", "Erreur lors du téléchargement de la note vocale");
@@ -77,15 +84,16 @@ public class FileController {
             @RequestParam("file") MultipartFile file,
             @AuthenticationPrincipal UserDetails userDetails) {
         try {
-            String filename = fileService.storeProfilePicture(userDetails, file);
+            String imageUrl = fileService.storeProfilePicture(userDetails, file);
             
             Map<String, Object> response = new HashMap<>();
             response.put("status", "success");
             response.put("message", "Photo de profil téléchargée avec succès");
-            response.put("filename", filename);
-            response.put("url", "/api/files/profile-pictures/" + filename);
+            response.put("url", imageUrl);
+            
             return ResponseEntity.ok(response);
         } catch (Exception e) {
+            log.error("Erreur lors du téléchargement de la photo de profil", e);
             Map<String, Object> response = new HashMap<>();
             response.put("status", "error");
             response.put("message", "Erreur lors du téléchargement de la photo de profil");
@@ -102,6 +110,7 @@ public class FileController {
             List<FileAttachment> attachments = fileService.getMessageAttachments(messageId);
             return ResponseEntity.ok(attachments);
         } catch (Exception e) {
+            log.error("Erreur lors de la récupération des pièces jointes", e);
             Map<String, Object> response = new HashMap<>();
             response.put("status", "error");
             response.put("message", "Erreur lors de la récupération des pièces jointes");
@@ -111,20 +120,36 @@ public class FileController {
     }
     
     @GetMapping("/download/{filename:.+}")
-    public ResponseEntity<Resource> downloadFile(@PathVariable String filename) {
+    public ResponseEntity<?> downloadFile(@PathVariable String filename) {
         try {
+            // Vérifier d'abord si c'est un fichier Cloudinary
+            if (fileService.isCloudinaryFile(filename)) {
+                String cloudinaryUrl = fileService.getCloudinaryUrl(filename);
+                
+                // Rediriger vers l'URL Cloudinary
+                return ResponseEntity.status(HttpStatus.FOUND)
+                    .header(HttpHeaders.LOCATION, cloudinaryUrl)
+                    .build();
+            }
+            
+            // Sinon, c'est un fichier local (ancien système)
             Resource resource = fileService.loadFileAsResource(filename);
+            
+            if (resource == null) {
+                return ResponseEntity.notFound().build();
+            }
             
             return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + resource.getFilename() + "\"")
                 .body(resource);
         } catch (Exception e) {
+            log.error("Erreur lors du téléchargement du fichier", e);
             return ResponseEntity.notFound().build();
         }
     }
     
     @GetMapping("/view/{filename:.+}")
-    public ResponseEntity<Resource> viewFile(@PathVariable String filename, @RequestParam(required = false) String token) {
+    public ResponseEntity<?> viewFile(@PathVariable String filename, @RequestParam(required = false) String token) {
         try {
             // Si un token est fourni, vérifier son authenticité
             if (token != null && !token.isEmpty()) {
@@ -136,23 +161,25 @@ public class FileController {
                 }
             }
             
+            // Vérifier d'abord si c'est un fichier Cloudinary
+            if (fileService.isCloudinaryFile(filename)) {
+                String cloudinaryUrl = fileService.getCloudinaryUrl(filename);
+                
+                // Rediriger vers l'URL Cloudinary
+                return ResponseEntity.status(HttpStatus.FOUND)
+                    .header(HttpHeaders.LOCATION, cloudinaryUrl)
+                    .build();
+            }
+            
+            // Sinon, c'est un fichier local (ancien système)
             Resource resource = fileService.loadFileAsResource(filename);
             
-            // Déterminer le type de contenu
-            String contentType = "application/octet-stream";
-            if (filename.endsWith(".jpg") || filename.endsWith(".jpeg")) {
-                contentType = "image/jpeg";
-            } else if (filename.endsWith(".png")) {
-                contentType = "image/png";
-            } else if (filename.endsWith(".pdf")) {
-                contentType = "application/pdf";
-            } else if (filename.endsWith(".mp3")) {
-                contentType = "audio/mpeg";
-            } else if (filename.endsWith(".webm")) {
-                contentType = "audio/webm";
-            } else if (filename.endsWith(".ogg")) {
-                contentType = "audio/ogg";
+            if (resource == null) {
+                return ResponseEntity.notFound().build();
             }
+            
+            // Déterminer le type de contenu
+            String contentType = determineContentType(filename);
             
             // Headers CORS explicites
             return ResponseEntity.ok()
@@ -163,7 +190,29 @@ public class FileController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + resource.getFilename() + "\"")
                 .body(resource);
         } catch (Exception e) {
+            log.error("Erreur lors de l'affichage du fichier", e);
             return ResponseEntity.notFound().build();
+        }
+    }
+    
+    /**
+     * Détermine le type MIME en fonction de l'extension du fichier
+     */
+    private String determineContentType(String filename) {
+        if (filename.endsWith(".jpg") || filename.endsWith(".jpeg")) {
+            return "image/jpeg";
+        } else if (filename.endsWith(".png")) {
+            return "image/png";
+        } else if (filename.endsWith(".pdf")) {
+            return "application/pdf";
+        } else if (filename.endsWith(".mp3")) {
+            return "audio/mpeg";
+        } else if (filename.endsWith(".webm")) {
+            return "audio/webm";
+        } else if (filename.endsWith(".ogg")) {
+            return "audio/ogg";
+        } else {
+            return "application/octet-stream";
         }
     }
     
@@ -179,25 +228,38 @@ public class FileController {
     }
 
     @GetMapping("/profile-pictures/{filename:.+}")
-public ResponseEntity<Resource> getProfilePicture(@PathVariable String filename) {
-    try {
-        // Charger le fichier depuis le dossier des photos de profil
-        Resource resource = fileService.loadProfilePictureAsResource(filename);
-        
-        // Déterminer le type de contenu
-        String contentType = "image/jpeg"; // Par défaut
-        if (filename.endsWith(".png")) {
-            contentType = "image/png";
-        } else if (filename.endsWith(".gif")) {
-            contentType = "image/gif";
+    public ResponseEntity<?> getProfilePicture(@PathVariable String filename) {
+        try {
+            // Les photos de profil sont déjà gérées par Cloudinary
+            // Si c'est une URL Cloudinary, rediriger vers cette URL
+            if (filename.startsWith("http")) {
+                return ResponseEntity.status(HttpStatus.FOUND)
+                    .header(HttpHeaders.LOCATION, filename)
+                    .build();
+            }
+            
+            // Pour les anciennes photos de profil stockées localement
+            try {
+                Resource resource = fileService.loadFileAsResource(filename);
+                
+                String contentType = "image/jpeg"; // Par défaut
+                if (filename.endsWith(".png")) {
+                    contentType = "image/png";
+                } else if (filename.endsWith(".gif")) {
+                    contentType = "image/gif";
+                }
+                
+                return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType(contentType))
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + resource.getFilename() + "\"")
+                    .body(resource);
+            } catch (Exception e) {
+                log.warn("Photo de profil locale introuvable: {}", filename);
+                return ResponseEntity.notFound().build();
+            }
+        } catch (Exception e) {
+            log.error("Erreur lors de la récupération de la photo de profil", e);
+            return ResponseEntity.notFound().build();
         }
-        
-        return ResponseEntity.ok()
-            .contentType(MediaType.parseMediaType(contentType))
-            .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + resource.getFilename() + "\"")
-            .body(resource);
-    } catch (Exception e) {
-        return ResponseEntity.notFound().build();
     }
-}
 }

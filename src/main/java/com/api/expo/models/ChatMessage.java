@@ -1,4 +1,3 @@
-// Modèle ChatMessage corrigé
 package com.api.expo.models;
 
 import jakarta.persistence.*;
@@ -40,18 +39,17 @@ public class ChatMessage {
     @Column(name = "read_at", columnDefinition = "TIMESTAMP")
     private Instant readAt;
     
-        private Instant timestamp;
-        
-        public ChatMessage() {
-            this.id = UUID.randomUUID().toString();
-            this.sentAt = Instant.now();
-        }
+    @Column(nullable = false, columnDefinition = "TIMESTAMP")
+    private Instant timestamp;
     
-        public void setTimestamp(Instant timestamp) {
-            this.timestamp = timestamp;
-    }
+    // Nouveau champ pour répondre à un message
+    @ManyToOne
+    @JoinColumn(name = "reply_to_message_id")
+    private ChatMessage replyToMessage;
     
-    public Instant getTimestamp() {
-        return this.timestamp;
+    public ChatMessage() {
+        this.id = UUID.randomUUID().toString();
+        this.sentAt = Instant.now();
+        this.timestamp = Instant.now();
     }
 }

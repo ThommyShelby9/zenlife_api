@@ -1,10 +1,11 @@
-// Mise à jour du ChatController.java pour intégrer les nouvelles fonctionnalités
 package com.api.expo.controllers;
 
+import com.api.expo.dto.ChatMessageDTO;
 import com.api.expo.models.ChatMessage;
 import com.api.expo.models.User;
 import com.api.expo.repository.UserRepository;
 import com.api.expo.services.ChatService;
+import com.api.expo.services.FileService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,10 +24,11 @@ public class ChatController {
     
     private final ChatService chatService;
     private final UserRepository userRepository;
+    private final FileService fileService;
     
     @PostMapping("/send/chat")
     public ResponseEntity<?> sendMessage(
-            @RequestBody ChatMessage message,
+            @RequestBody ChatMessageDTO messageDTO,
             @AuthenticationPrincipal UserDetails userDetails) {
         
         Map<String, Object> response = new HashMap<>();
@@ -34,7 +36,36 @@ public class ChatController {
         try {
             System.out.println("Envoi de message par: " + userDetails.getUsername());
             
-            String messageId = chatService.sendMessage(userDetails, message.getReceiver(), message.getContent());
+            // Vérifier que l'objet receiver et son ID ne sont pas null
+            if (messageDTO.getReceiver() == null || messageDTO.getReceiver().getId() == null) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", "L'ID du destinataire ne peut pas être null"
+                ));
+            }
+            
+            // Récupérer l'ID du destinataire à partir de l'objet receiver
+            String receiverId = messageDTO.getReceiver().getId();
+            
+            // Vérifier que l'ID n'est pas vide
+            if (receiverId.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", "L'ID du destinataire ne peut pas être vide"
+                ));
+            }
+            
+            // Récupérer le destinataire
+            User receiver = userRepository.findById(receiverId)
+                .orElseThrow(() -> new RuntimeException("Destinataire non trouvé"));
+            
+            // Envoyer le message avec l'ID du message auquel on répond (si présent)
+            String messageId = chatService.sendMessage(
+                userDetails, 
+                receiver, 
+                messageDTO.getContent(),
+                messageDTO.getReplyToMessageId()
+            );
             
             response.put("status", "success");
             response.put("message", "Message envoyé avec succès");
@@ -54,23 +85,57 @@ public class ChatController {
     
     @PostMapping("/send/chat/with-attachments")
     public ResponseEntity<?> sendMessageWithAttachments(
-            @RequestParam("receiver") User receiver,
+            @RequestParam("receiver") String receiverId,  // Garder receiver comme nom de paramètre
             @RequestParam("content") String content,
             @RequestParam("files") List<MultipartFile> files,
+            @RequestParam(value = "replyToMessageId", required = false) String replyToMessageId,
             @AuthenticationPrincipal UserDetails userDetails) {
         
         Map<String, Object> response = new HashMap<>();
         
         try {
-            // D'abord envoyer le message texte
-            String messageId = chatService.sendMessage(userDetails, receiver, content);
+            // Vérifier que l'ID du destinataire n'est pas null ou vide
+            if (receiverId == null || receiverId.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", "L'ID du destinataire ne peut pas être null ou vide"
+                ));
+            }
             
-            // Ensuite, traiter les pièces jointes via le service de fichiers
-            // (Cette logique est généralement gérée par le FileService)
+            // Récupérer le destinataire
+            User receiver = userRepository.findById(receiverId)
+                .orElseThrow(() -> new RuntimeException("Destinataire non trouvé"));
+            
+            // D'abord envoyer le message texte avec l'ID du message auquel on répond (si présent)
+            String messageId = chatService.sendMessage(userDetails, receiver, content, replyToMessageId);
+            
+            // Ensuite, traiter les pièces jointes
+            List<Map<String, Object>> attachmentDetails = new ArrayList<>();
+            
+            for (MultipartFile file : files) {
+                Map<String, Object> attachmentInfo;
+                
+                // Traiter différemment les notes vocales 
+                if (file.getContentType() != null && file.getContentType().startsWith("audio/") && 
+                    file.getOriginalFilename() != null && file.getOriginalFilename().contains("voice-note")) {
+                    
+                    // Estimer la durée (à remplacer par la durée réelle si disponible)
+                    double estimatedDuration = Math.max(1.0, file.getSize() / 16000.0); // Estimation grossière
+                    
+                    // Sauvegarder comme note vocale
+                    attachmentInfo = fileService.saveVoiceNote(file, messageId, estimatedDuration);
+                } else {
+                    // Sauvegarder comme pièce jointe normale
+                    attachmentInfo = fileService.storeFile(file, messageId);
+                }
+                
+                attachmentDetails.add(attachmentInfo);
+            }
             
             response.put("status", "success");
             response.put("message", "Message avec pièces jointes envoyé avec succès");
             response.put("messageId", messageId);
+            response.put("attachments", attachmentDetails);
             return ResponseEntity.ok(response);
             
         } catch (Exception e) {
@@ -79,6 +144,44 @@ public class ChatController {
             
             response.put("status", "error");
             response.put("message", "Erreur lors de l'envoi du message avec pièces jointes");
+            response.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+    // Nouveau endpoint spécifique pour les notes vocales
+    @PostMapping("/send/chat/voice-note")
+    public ResponseEntity<?> sendVoiceNote(
+            @RequestParam("receiver") String receiverId,
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("durationSeconds") Double durationSeconds,
+            @RequestParam(value = "replyToMessageId", required = false) String replyToMessageId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            // Récupérer le destinataire
+            User receiver = userRepository.findById(receiverId)
+                .orElseThrow(() -> new RuntimeException("Destinataire non trouvé"));
+            
+            // Créer un message pour la note vocale avec l'ID du message auquel on répond (si présent)
+            String messageId = chatService.sendMessage(userDetails, receiver, "[NOTE_VOCALE]", replyToMessageId);
+            
+            // Enregistrer la note vocale avec la durée fournie
+            Map<String, Object> voiceNoteInfo = fileService.saveVoiceNote(file, messageId, durationSeconds);
+            
+            response.put("status", "success");
+            response.put("message", "Note vocale envoyée avec succès");
+            response.put("messageId", messageId);
+            response.put("voiceNote", voiceNoteInfo);
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            System.out.println("Erreur lors de l'envoi de la note vocale: " + e.getMessage());
+            e.printStackTrace();
+            
+            response.put("status", "error");
+            response.put("message", "Erreur lors de l'envoi de la note vocale");
             response.put("error", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
