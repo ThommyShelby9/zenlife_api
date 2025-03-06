@@ -126,24 +126,70 @@ public class FCMPushService {
             headers.setContentType(MediaType.APPLICATION_JSON);
             headers.set("Authorization", "Bearer " + token);
             
+            // Extraire les valeurs nécessaires du notificationData
+            String title = (String) notificationData.getOrDefault("title", "ZenLife");
+            String body = (String) notificationData.getOrDefault("body", "");
+            
             // Structure correcte pour FCM
             Map<String, Object> fcmRequest = new HashMap<>();
-            fcmRequest.put("message", new HashMap<String, Object>() {{
-                put("token", fcmToken);
-                put("notification", notificationData);
-                put("data", notificationData.get("data"));
-                // Ajout de l'option pour les notifications silencieuses sur iOS
-                put("apns", new HashMap<String, Object>() {{
-                    put("headers", new HashMap<String, Object>() {{
-                        put("apns-priority", "10");
-                    }});
-                    put("payload", new HashMap<String, Object>() {{
-                        put("aps", new HashMap<String, Object>() {{
-                            put("content-available", 1);
-                        }});
-                    }});
-                }});
-            }});
+            Map<String, Object> message = new HashMap<>();
+            Map<String, Object> notification = new HashMap<>();
+            Map<String, Object> android = new HashMap<>();
+            Map<String, Object> apns = new HashMap<>();
+            Map<String, Object> webpush = new HashMap<>();
+            
+            // Configuration de la notification (uniquement les champs autorisés par FCM)
+            notification.put("title", title);
+            notification.put("body", body);
+            
+            // Données supplémentaires doivent être placées dans le champ "data"
+            Map<String, String> data = new HashMap<>();
+            if (notificationData.containsKey("url")) {
+                data.put("url", (String) notificationData.get("url"));
+            }
+            if (notificationData.containsKey("tag")) {
+                data.put("tag", (String) notificationData.get("tag"));
+            }
+            
+            // Configuration spécifique à Android
+            Map<String, Object> androidNotification = new HashMap<>();
+            if (notificationData.containsKey("icon")) {
+                androidNotification.put("icon", notificationData.get("icon"));
+            }
+            androidNotification.put("click_action", "FLUTTER_NOTIFICATION_CLICK");
+            android.put("notification", androidNotification);
+            
+            // Configuration spécifique à Web
+            Map<String, Object> webpushNotification = new HashMap<>();
+            if (notificationData.containsKey("icon")) {
+                webpushNotification.put("icon", notificationData.get("icon"));
+            }
+            if (notificationData.containsKey("badge")) {
+                webpushNotification.put("badge", notificationData.get("badge"));
+            }
+            if (notificationData.containsKey("tag")) {
+                webpushNotification.put("tag", notificationData.get("tag"));
+            }
+            webpush.put("notification", webpushNotification);
+            
+            // Configuration APNS (iOS)
+            Map<String, Object> apnsPayload = new HashMap<>();
+            Map<String, Object> aps = new HashMap<>();
+            aps.put("content-available", 1);
+            aps.put("mutable-content", 1);
+            apnsPayload.put("aps", aps);
+            apns.put("payload", apnsPayload);
+            apns.put("headers", Map.of("apns-priority", "10"));
+            
+            // Assemblage du message complet
+            message.put("token", fcmToken);
+            message.put("notification", notification);
+            message.put("data", data);
+            message.put("android", android);
+            message.put("webpush", webpush);
+            message.put("apns", apns);
+            
+            fcmRequest.put("message", message);
             
             // Envoyer la requête
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(fcmRequest, headers);
