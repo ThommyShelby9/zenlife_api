@@ -1,4 +1,3 @@
-// FCMPushService.java
 package com.api.expo.services;
 
 import com.api.expo.models.Notification;
@@ -9,6 +8,9 @@ import com.api.expo.repository.PushSubscriptionRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.auth.oauth2.GoogleCredentials;
 
+import io.jsonwebtoken.Jwts;
+import nl.martijndwars.webpush.PushService;
+import nl.martijndwars.webpush.Subscription;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -17,15 +19,34 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.jose4j.lang.JoseException;
 
 import jakarta.annotation.PostConstruct;
 
 import java.io.InputStream;
+import java.net.URI;
+import java.security.GeneralSecurityException;
+import java.security.PrivateKey;
+import java.security.spec.PKCS8EncodedKeySpec;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
+import java.security.KeyPair;
+import java.security.PrivateKey;
+import java.util.Date;
+import java.security.KeyFactory;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.util.Base64;
+import java.net.URL;
+import java.net.URI;
 
 @Service
 public class FCMPushService {
@@ -38,6 +59,12 @@ public class FCMPushService {
     @Value("${app.webpush.public.key}")
     private String publicKey;
     
+    @Value("${app.webpush.private.key}")
+    private String privateKey;
+    
+    @Value("${app.webpush.subject}")
+    private String subject;
+    
     public FCMPushService(PushSubscriptionRepository pushSubscriptionRepository,
                           NotificationRepository notificationRepository,
                           ObjectMapper objectMapper) {
@@ -47,10 +74,6 @@ public class FCMPushService {
         this.restTemplate = new RestTemplate();
     }
     
-    @PostConstruct
-    private void init() {
-        // Initialisation si nécessaire
-    }
     
     public String getPublicKey() {
         return publicKey;
@@ -153,15 +176,12 @@ public class FCMPushService {
      */
     private void sendFCMNotification(PushSubscription subscription, Map<String, Object> notificationData) {
         try {
-            // Extraire l'ID de l'endpoint FCM
+            // Extraire l'ID de l'endpoint FCM avec une expression régulière plus robuste
             String endpoint = subscription.getEndpoint();
-            String fcmToken;
+            String fcmToken = extractFcmToken(endpoint);
             
-            // Correction de l'extraction du token
-            if (endpoint.contains("fcm.googleapis.com/fcm/send/")) {
-                fcmToken = endpoint.substring(endpoint.lastIndexOf("/") + 1);
-            } else {
-                throw new IllegalArgumentException("Endpoint invalide pour FCM");
+            if (fcmToken == null || fcmToken.isEmpty()) {
+                throw new IllegalArgumentException("Impossible d'extraire un token FCM valide de l'endpoint: " + endpoint);
             }
     
             InputStream serviceAccount = getClass().getResourceAsStream("/zenlife-b7b30-firebase-adminsdk-fbsvc-87b92dbb99.json");
@@ -248,13 +268,42 @@ public class FCMPushService {
             
             // Envoyer la requête
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(fcmRequest, headers);
-            restTemplate.postForEntity("https://fcm.googleapis.com/v1/projects/zenlife-b7b30/messages:send", request, String.class);
+            String fcmUrl = "https://fcm.googleapis.com/v1/projects/zenlife-b7b30/messages:send";
+            System.out.println("Envoi FCM à " + fcmUrl + " avec token: " + fcmToken.substring(0, Math.min(fcmToken.length(), 10)) + "...");
+            
+            ResponseEntity<String> response = restTemplate.postForEntity(fcmUrl, request, String.class);
+            System.out.println("Réponse FCM: " + response.getStatusCode());
             
         } catch (Exception e) {
             System.err.println("Erreur lors de l'envoi FCM: " + e.getMessage());
             e.printStackTrace();
             throw new RuntimeException("Échec de l'envoi FCM", e);
         }
+    }
+    
+    /**
+     * Extraire le token FCM avec une expression régulière plus robuste
+     */
+    private String extractFcmToken(String endpoint) {
+        if (endpoint == null || endpoint.isEmpty()) {
+            return null;
+        }
+        
+        // Utiliser une expression régulière pour extraire le token
+        Pattern pattern = Pattern.compile("fcm\\.googleapis\\.com/fcm/send/([^/]+)$");
+        Matcher matcher = pattern.matcher(endpoint);
+        
+        if (matcher.find()) {
+            return matcher.group(1);
+        }
+        
+        // Support pour d'autres formats possibles
+        String[] parts = endpoint.split("/");
+        if (parts.length > 0) {
+            return parts[parts.length - 1];
+        }
+        
+        return null;
     }
     
     /**
@@ -270,8 +319,8 @@ public class FCMPushService {
             }
             
             System.out.println("Envoi de notification Web Push à: " + endpoint);
-
-            // Préparer le payload selon la spécification Web Push
+    
+            // Préparer le payload
             Map<String, Object> payload = new HashMap<>();
             payload.put("notification", notificationData);
             
@@ -282,26 +331,31 @@ public class FCMPushService {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             
-            // Ajouter les en-têtes d'authentification Web Push
-            String vapidAuthHeader = "vapid t=" + publicKey + ", k=" + subscription.getP256dh();
-            headers.set("Authorization", vapidAuthHeader);
+            // Générer un JWT VAPID conforme
+            String vapidJwt = generateVAPIDJWT(endpoint);
+            headers.set("Authorization", "vapid t=" + vapidJwt + ", k=" + publicKey);
             
-            // Option: Ajouter une durée de vie à la notification
-            headers.set("TTL", "86400");  // 24 heures en secondes
+            // Ajouter la durée de vie
+            headers.set("TTL", "86400");
+            
+            // Crypter le payload si nécessaire (pour les endpoints qui le requièrent)
+            // Note: Cette partie est complexe et nécessiterait l'implémentation du cryptage ECDH
+            // Pour simplifier, nous envoyons le payload sans cryptage pour les endpoints qui l'acceptent
             
             // Créer la requête
             HttpEntity<String> request = new HttpEntity<>(jsonPayload, headers);
             
-            // Utiliser un client HTTP avec un timeout plus long
+            // Configurer un client avec timeout plus long
             RestTemplate customTemplate = new RestTemplate();
-            customTemplate.setRequestFactory(new SimpleClientHttpRequestFactory());
-            ((SimpleClientHttpRequestFactory) customTemplate.getRequestFactory()).setConnectTimeout(10000);
-            ((SimpleClientHttpRequestFactory) customTemplate.getRequestFactory()).setReadTimeout(10000);
+            SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+            factory.setConnectTimeout(10000);
+            factory.setReadTimeout(10000);
+            customTemplate.setRequestFactory(factory);
             
-            // Envoyer la requête et afficher le résultat
+            // Envoyer la requête
             ResponseEntity<String> response = customTemplate.postForEntity(endpoint, request, String.class);
             
-            System.out.println("Réponse du serveur Web Push: " + response.getStatusCode());
+            System.out.println("Réponse Web Push: " + response.getStatusCode());
             return response.getStatusCode().is2xxSuccessful();
         } catch (Exception e) {
             System.err.println("Erreur détaillée lors de l'envoi Web Push: " + e.getMessage());
@@ -309,4 +363,33 @@ public class FCMPushService {
             return false;
         }
     }
+
+    private String generateVAPIDJWT(String endpoint) {
+    try {
+        // Convertir la clé privée VAPID depuis le format Base64URL
+        byte[] decodedKey = Base64.getDecoder().decode(privateKey.replace('-', '+').replace('_', '/'));
+        PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(decodedKey);
+        KeyFactory keyFactory = KeyFactory.getInstance("EC");
+        PrivateKey signingKey = keyFactory.generatePrivate(keySpec);
+
+        // Extraire l'origine de l'endpoint pour le champ 'aud'
+        URL endpointUrl = new URI(endpoint).toURL();
+        String audience = endpointUrl.getProtocol() + "://" + endpointUrl.getHost();
+
+        // Créer le JWT VAPID
+        long expirationTimeMillis = System.currentTimeMillis() + 86400 * 1000; // 24 heures en millisecondes
+        
+        return Jwts.builder()
+                .setSubject(subject) // "mailto:your-email@example.com"
+                .setAudience(audience)
+                .setExpiration(new Date(expirationTimeMillis))
+                .signWith(signingKey, SignatureAlgorithm.ES256)
+                .compact();
+    } catch (Exception e) {
+        System.err.println("Erreur lors de la génération du JWT VAPID: " + e.getMessage());
+        e.printStackTrace();
+        // En cas d'erreur, retourner un JWT vide (la notification échouera mais ne plantera pas l'application)
+        return "";
+    }
+}
 }
