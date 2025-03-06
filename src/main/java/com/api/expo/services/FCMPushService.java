@@ -102,10 +102,20 @@ public class FCMPushService {
         try {
             // Extraire l'ID de l'endpoint FCM
             String endpoint = subscription.getEndpoint();
-            String[] parts = endpoint.split("/");
-            String fcmToken = parts[parts.length - 1];
-
+            String fcmToken;
+            
+            // Correction de l'extraction du token
+            if (endpoint.contains("fcm.googleapis.com/fcm/send/")) {
+                fcmToken = endpoint.substring(endpoint.lastIndexOf("/") + 1);
+            } else {
+                throw new IllegalArgumentException("Endpoint invalide pour FCM");
+            }
+    
             InputStream serviceAccount = getClass().getResourceAsStream("/zenlife-b7b30-firebase-adminsdk-fbsvc-87b92dbb99.json");
+            if (serviceAccount == null) {
+                throw new IllegalStateException("Fichier de configuration Firebase Admin introuvable");
+            }
+            
             GoogleCredentials googleCredentials = GoogleCredentials.fromStream(serviceAccount)
                     .createScoped(Arrays.asList("https://www.googleapis.com/auth/firebase.messaging"));
             googleCredentials.refreshIfExpired();
@@ -116,21 +126,34 @@ public class FCMPushService {
             headers.setContentType(MediaType.APPLICATION_JSON);
             headers.set("Authorization", "Bearer " + token);
             
-            // Préparer le corps de la requête FCM
+            // Structure correcte pour FCM
             Map<String, Object> fcmRequest = new HashMap<>();
-            fcmRequest.put("to", fcmToken);
-            fcmRequest.put("notification", notificationData);
-            fcmRequest.put("data", notificationData.get("data"));
+            fcmRequest.put("message", new HashMap<String, Object>() {{
+                put("token", fcmToken);
+                put("notification", notificationData);
+                put("data", notificationData.get("data"));
+                // Ajout de l'option pour les notifications silencieuses sur iOS
+                put("apns", new HashMap<String, Object>() {{
+                    put("headers", new HashMap<String, Object>() {{
+                        put("apns-priority", "10");
+                    }});
+                    put("payload", new HashMap<String, Object>() {{
+                        put("aps", new HashMap<String, Object>() {{
+                            put("content-available", 1);
+                        }});
+                    }});
+                }});
+            }});
             
             // Envoyer la requête
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(fcmRequest, headers);
-            restTemplate.postForEntity("https://fcm.googleapis.com/fcm/send", request, String.class);
+            restTemplate.postForEntity("https://fcm.googleapis.com/v1/projects/zenlife-b7b30/messages:send", request, String.class);
             
         } catch (Exception e) {
             System.err.println("Erreur lors de l'envoi FCM: " + e.getMessage());
+            e.printStackTrace();
         }
     }
-    
     /**
      * Envoi via l'API Web Push standard
      */
