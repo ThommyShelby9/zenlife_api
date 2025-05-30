@@ -338,7 +338,7 @@ public User register(RegisterRequest registerRequest) throws MessagingException 
                "    <table role=\"presentation\" cellspacing=\"0\" cellpadding=\"0\" border=\"0\" align=\"center\" width=\"100%\" style=\"max-width: 600px; margin: 0 auto; padding: 40px 20px; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);\">\n" +
                "        <tr>\n" +
                "            <td style=\"text-align: center; padding-bottom: 30px;\">\n" +
-               "                <img src=\"" + frontendUrl + "/assets/img/logo.png\" alt=\"ZenLife\" width=\"150\" style=\"display: inline-block; max-width: 100%; height: auto;\">\n" +
+               "                <img src=\"https://zenlife-gs2w.onrender.com/img/logo.png\" alt=\"ZenLife\" width=\"150\" style=\"display: inline-block; max-width: 100%; height: auto;\">\n" +
                "            </td>\n" +
                "        </tr>\n" +
                "        <tr>\n" +
@@ -382,7 +382,7 @@ public User register(RegisterRequest registerRequest) throws MessagingException 
                "    <table role=\"presentation\" cellspacing=\"0\" cellpadding=\"0\" border=\"0\" align=\"center\" width=\"100%\" style=\"max-width: 600px; margin: 0 auto; padding: 40px 20px; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);\">\n" +
                "        <tr>\n" +
                "            <td style=\"text-align: center; padding-bottom: 30px;\">\n" +
-               "                <img src=\"" + frontendUrl + "/assets/img/logo.jpg\" alt=\"ZenLife\" width=\"150\" style=\"display: inline-block; max-width: 100%; height: auto;\">\n" +
+               "                <img src=\"https://zenlife-gs2w.onrender.com/img/logo.png\" alt=\"ZenLife\" width=\"150\" style=\"display: inline-block; max-width: 100%; height: auto;\">\n" +
                "            </td>\n" +
                "        </tr>\n" +
                "        <tr>\n" +
