@@ -1,0 +1,291 @@
+<svg viewBox="0 0 1600 1200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .user-class { fill: #e3f2fd; stroke: #1976d2; stroke-width: 2; }
+      .core-class { fill: #f3e5f5; stroke: #7b1fa2; stroke-width: 2; }
+      .support-class { fill: #e8f5e8; stroke: #388e3c; stroke-width: 2; }
+      .header { fill: #ffffff; stroke: none; }
+      .text { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11px; fill: #333; }
+      .class-name { font-weight: bold; font-size: 13px; fill: #1a1a1a; }
+      .attribute { font-size: 10px; fill: #444; }
+      .method { font-size: 10px; fill: #666; font-style: italic; }
+      .inheritance { stroke: #1976d2; stroke-width: 2; fill: none; marker-end: url(#triangle); }
+      .association { stroke: #388e3c; stroke-width: 1.5; fill: none; marker-end: url(#arrow); }
+      .composition { stroke: #d32f2f; stroke-width: 2; fill: none; marker-end: url(#diamond); }
+      .relation-label { font-size: 9px; fill: #666; font-weight: bold; }
+      .multiplicity { font-size: 8px; fill: #999; }
+      .shadow { filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.1)); }
+    </style>
+    
+    <!-- Markers pour les flèches -->
+    <marker id="triangle" markerWidth="12" markerHeight="10" refX="10" refY="5" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 Z" fill="#1976d2" stroke="none"/>
+    </marker>
+    <marker id="arrow" markerWidth="10" markerHeight="8" refX="8" refY="4" orient="auto">
+      <path d="M 0 0 L 8 4 L 0 8 L 2 4 Z" fill="#388e3c" stroke="none"/>
+    </marker>
+    <marker id="diamond" markerWidth="12" markerHeight="8" refX="10" refY="4" orient="auto">
+      <path d="M 0 4 L 6 0 L 12 4 L 6 8 Z" fill="#d32f2f" stroke="none"/>
+    </marker>
+  </defs>
+  
+  <!-- Titre principal -->
+  <text x="800" y="30" text-anchor="middle" style="font-size: 18px; font-weight: bold; fill: #1976d2;">
+    Diagramme de Classes - Plateforme de Réservation
+  </text>
+  
+  <!-- CENTRE : User (classe parent) -->
+  <g class="shadow" transform="translate(650, 180)">
+    <rect class="user-class" width="220" height="180" rx="8"/>
+    <rect class="header" width="220" height="35" rx="8"/>
+    <text class="class-name" x="110" y="25" text-anchor="middle">🧑 User</text>
+    <line x1="0" y1="35" x2="220" y2="35" stroke="#1976d2" stroke-width="1"/>
+    
+    <text class="attribute" x="10" y="50">• _id: ObjectId</text>
+    <text class="attribute" x="10" y="63">• name: String</text>
+    <text class="attribute" x="10" y="76">• email: String</text>
+    <text class="attribute" x="10" y="89">• password: String</text>
+    <text class="attribute" x="10" y="102">• role: String ('visitor'|'host'|'admin')</text>
+    <text class="attribute" x="10" y="115">• phone: String</text>
+    <text class="attribute" x="10" y="128">• avatar: String</text>
+    <text class="attribute" x="10" y="141">• isVerified: Boolean</text>
+    <text class="attribute" x="10" y="154">• createdAt: Date</text>
+    
+    <line x1="0" y1="160" x2="220" y2="160" stroke="#1976d2" stroke-width="1"/>
+    <text class="method" x="10" y="173">+ authenticate()</text>
+  </g>
+  
+  <!-- GAUCHE : Visitor -->
+  <g class="shadow" transform="translate(250, 250)">
+    <rect class="user-class" width="150" height="80" rx="6"/>
+    <rect class="header" width="150" height="30" rx="6"/>
+    <text class="class-name" x="75" y="22" text-anchor="middle">👤 Visitor</text>
+    <line x1="0" y1="30" x2="150" y2="30" stroke="#1976d2" stroke-width="1"/>
+    <text class="method" x="10" y="45">+ makeBooking()</text>
+    <text class="method" x="10" y="58">+ writeReview()</text>
+    <text class="method" x="10" y="71">+ sendMessage()</text>
+  </g>
+  
+  <!-- HAUT CENTRE : Host -->
+  <g class="shadow" transform="translate(650, 50)">
+    <rect class="user-class" width="150" height="80" rx="6"/>
+    <rect class="header" width="150" height="30" rx="6"/>
+    <text class="class-name" x="75" y="22" text-anchor="middle">🏠 Host</text>
+    <line x1="0" y1="30" x2="150" y2="30" stroke="#1976d2" stroke-width="1"/>
+    <text class="method" x="10" y="45">+ createListing()</text>
+    <text class="method" x="10" y="58">+ manageListing()</text>
+    <text class="method" x="10" y="71">+ confirmBooking()</text>
+  </g>
+  
+  <!-- DROITE : Admin -->
+  <g class="shadow" transform="translate(1100, 250)">
+    <rect class="user-class" width="150" height="80" rx="6"/>
+    <rect class="header" width="150" height="30" rx="6"/>
+    <text class="class-name" x="75" y="22" text-anchor="middle">⚙️ Admin</text>
+    <line x1="0" y1="30" x2="150" y2="30" stroke="#1976d2" stroke-width="1"/>
+    <text class="method" x="10" y="45">+ managePlatform()</text>
+    <text class="method" x="10" y="58">+ moderateContent()</text>
+    <text class="method" x="10" y="71">+ generateReports()</text>
+  </g>
+  
+  <!-- HAUT DROITE : Listing -->
+  <g class="shadow" transform="translate(1050, 50)">
+    <rect class="core-class" width="200" height="150" rx="8"/>
+    <rect class="header" width="200" height="35" rx="8"/>
+    <text class="class-name" x="100" y="25" text-anchor="middle">🏡 Listing</text>
+    <line x1="0" y1="35" x2="200" y2="35" stroke="#7b1fa2" stroke-width="1"/>
+    
+    <text class="attribute" x="10" y="50">• _id: ObjectId</text>
+    <text class="attribute" x="10" y="63">• title: String</text>
+    <text class="attribute" x="10" y="76">• description: String</text>
+    <text class="attribute" x="10" y="89">• location: String</text>
+    <text class="attribute" x="10" y="102">• images: [String]</text>
+    <text class="attribute" x="10" y="115">• pricePerNight: Number</text>
+    <text class="attribute" x="10" y="128">• hostId: ObjectId</text>
+    
+    <line x1="0" y1="135" x2="200" y2="135" stroke="#7b1fa2" stroke-width="1"/>
+    <text class="method" x="10" y="148">+ updateAvailability()</text>
+  </g>
+  
+  <!-- BAS GAUCHE : Booking -->
+  <g class="shadow" transform="translate(50, 500)">
+    <rect class="core-class" width="180" height="140" rx="8"/>
+    <rect class="header" width="180" height="35" rx="8"/>
+    <text class="class-name" x="90" y="25" text-anchor="middle">📅 Booking</text>
+    <line x1="0" y1="35" x2="180" y2="35" stroke="#7b1fa2" stroke-width="1"/>
+    
+    <text class="attribute" x="10" y="50">• _id: ObjectId</text>
+    <text class="attribute" x="10" y="63">• listingId: ObjectId</text>
+    <text class="attribute" x="10" y="76">• userId: ObjectId</text>
+    <text class="attribute" x="10" y="89">• startDate: Date</text>
+    <text class="attribute" x="10" y="102">• endDate: Date</text>
+    <text class="attribute" x="10" y="115">• totalPrice: Number</text>
+    
+    <line x1="0" y1="125" x2="180" y2="125" stroke="#7b1fa2" stroke-width="1"/>
+    <text class="method" x="10" y="138">+ calculateTotal()</text>
+  </g>
+  
+  <!-- BAS : Payment -->
+  <g class="shadow" transform="translate(300, 500)">
+    <rect class="support-class" width="160" height="120" rx="6"/>
+    <rect class="header" width="160" height="30" rx="6"/>
+    <text class="class-name" x="80" y="22" text-anchor="middle">💳 Payment</text>
+    <line x1="0" y1="30" x2="160" y2="30" stroke="#388e3c" stroke-width="1"/>
+    
+    <text class="attribute" x="8" y="45">• _id: ObjectId</text>
+    <text class="attribute" x="8" y="58">• bookingId: ObjectId</text>
+    <text class="attribute" x="8" y="71">• amount: Number</text>
+    <text class="attribute" x="8" y="84">• status: String</text>
+    
+    <line x1="0" y1="95" x2="160" y2="95" stroke="#388e3c" stroke-width="1"/>
+    <text class="method" x="8" y="108">+ processPayment()</text>
+  </g>
+  
+  <!-- CENTRE BAS : Review -->
+  <g class="shadow" transform="translate(550, 500)">
+    <rect class="support-class" width="160" height="120" rx="6"/>
+    <rect class="header" width="160" height="30" rx="6"/>
+    <text class="class-name" x="80" y="22" text-anchor="middle">⭐ Review</text>
+    <line x1="0" y1="30" x2="160" y2="30" stroke="#388e3c" stroke-width="1"/>
+    
+    <text class="attribute" x="8" y="45">• _id: ObjectId</text>
+    <text class="attribute" x="8" y="58">• authorId: ObjectId</text>
+    <text class="attribute" x="8" y="71">• targetId: ObjectId</text>
+    <text class="attribute" x="8" y="84">• rating: Number (1-5)</text>
+    
+    <line x1="0" y1="95" x2="160" y2="95" stroke="#388e3c" stroke-width="1"/>
+    <text class="method" x="8" y="108">+ validateRating()</text>
+  </g>
+  
+  <!-- DROITE BAS : Message -->
+  <g class="shadow" transform="translate(800, 500)">
+    <rect class="support-class" width="160" height="120" rx="6"/>
+    <rect class="header" width="160" height="30" rx="6"/>
+    <text class="class-name" x="80" y="22" text-anchor="middle">💬 Message</text>
+    <line x1="0" y1="30" x2="160" y2="30" stroke="#388e3c" stroke-width="1"/>
+    
+    <text class="attribute" x="8" y="45">• _id: ObjectId</text>
+    <text class="attribute" x="8" y="58">• fromUserId: ObjectId</text>
+    <text class="attribute" x="8" y="71">• toUserId: ObjectId</text>
+    <text class="attribute" x="8" y="84">• content: String</text>
+    
+    <line x1="0" y1="95" x2="160" y2="95" stroke="#388e3c" stroke-width="1"/>
+    <text class="method" x="8" y="108">+ markAsRead()</text>
+  </g>
+  
+  <!-- EXTRÊME DROITE : Notification -->
+  <g class="shadow" transform="translate(1050, 500)">
+    <rect class="support-class" width="160" height="120" rx="6"/>
+    <rect class="header" width="160" height="30" rx="6"/>
+    <text class="class-name" x="80" y="22" text-anchor="middle">🔔 Notification</text>
+    <line x1="0" y1="30" x2="160" y2="30" stroke="#388e3c" stroke-width="1"/>
+    
+    <text class="attribute" x="8" y="45">• _id: ObjectId</text>
+    <text class="attribute" x="8" y="58">• userId: ObjectId</text>
+    <text class="attribute" x="8" y="71">• type: String</text>
+    <text class="attribute" x="8" y="84">• message: String</text>
+    
+    <line x1="0" y1="95" x2="160" y2="95" stroke="#388e3c" stroke-width="1"/>
+    <text class="method" x="8" y="108">+ send()</text>
+  </g>
+  
+  <!-- RELATIONS D'HÉRITAGE - Lignes droites simples -->
+  <!-- Visitor <- User -->
+  <line class="inheritance" x1="650" y1="290" x2="400" y2="290" />
+  <text class="multiplicity" x="520" y="285">hérite</text>
+  
+  <!-- Host <- User -->
+  <line class="inheritance" x1="725" y1="180" x2="725" y2="130" />
+  <text class="multiplicity" x="730" y="155">hérite</text>
+  
+  <!-- Admin <- User -->
+  <line class="inheritance" x1="870" y1="290" x2="1100" y2="290" />
+  <text class="multiplicity" x="980" y="285">hérite</text>
+  
+  <!-- RELATIONS D'ASSOCIATION - Lignes droites pour éviter croisements -->
+  
+  <!-- Host -> Listing (horizontal simple) -->
+  <line class="association" x1="800" y1="90" x2="1050" y2="90" />
+  <text class="relation-label" x="900" y="85">creates</text>
+  <text class="multiplicity" x="820" y="105">1</text>
+  <text class="multiplicity" x="1030" y="105">1..*</text>
+  
+  <!-- Visitor -> Booking (vertical puis horizontal) -->
+  <line class="association" x1="325" y1="330" x2="325" y2="450" />
+  <line class="association" x1="325" y1="450" x2="140" y2="450" />
+  <line class="association" x1="140" y1="450" x2="140" y2="500" />
+  <text class="relation-label" x="230" y="440">makes</text>
+  <text class="multiplicity" x="330" y="350">1</text>
+  <text class="multiplicity" x="145" y="480">1..*</text>
+  
+  <!-- Listing -> Booking (chemin propre) -->
+  <line class="association" x1="1050" y1="150" x2="280" y2="150" />
+  <line class="association" x1="280" y1="150" x2="280" y2="450" />
+  <line class="association" x1="280" y1="450" x2="230" y2="450" />
+  <line class="association" x1="230" y1="450" x2="230" y2="500" />
+  <text class="relation-label" x="650" y="145">reserved by</text>
+  <text class="multiplicity" x="1030" y="165">1</text>
+  <text class="multiplicity" x="235" y="480">0..*</text>
+  
+  <!-- Booking -> Payment (horizontal simple) -->
+  <line class="association" x1="230" y1="570" x2="300" y2="570" />
+  <text class="relation-label" x="245" y="565">triggers</text>
+  <text class="multiplicity" x="240" y="585">1</text>
+  <text class="multiplicity" x="285" y="585">1</text>
+  
+  <!-- User -> Review (vertical direct) -->
+  <line class="association" x1="720" y1="360" x2="720" y2="430" />
+  <line class="association" x1="720" y1="430" x2="630" y2="430" />
+  <line class="association" x1="630" y1="430" x2="630" y2="500" />
+  <text class="relation-label" x="650" y="425">writes</text>
+  <text class="multiplicity" x="725" y="380">1</text>
+  <text class="multiplicity" x="635" y="480">0..*</text>
+  
+  <!-- User -> Message (vertical direct) -->
+  <line class="association" x1="800" y1="360" x2="800" y2="430" />
+  <line class="association" x1="800" y1="430" x2="880" y2="430" />
+  <line class="association" x1="880" y1="430" x2="880" y2="500" />
+  <text class="relation-label" x="830" y="425">sends</text>
+  <text class="multiplicity" x="805" y="380">1</text>
+  <text class="multiplicity" x="885" y="480">0..*</text>
+  
+  <!-- User -> Notification (direct) -->
+  <line class="association" x1="870" y1="320" x2="1020" y2="320" />
+  <line class="association" x1="1020" y1="320" x2="1020" y2="430" />
+  <line class="association" x1="1020" y1="430" x2="1130" y2="430" />
+  <line class="association" x1="1130" y1="430" x2="1130" y2="500" />
+  <text class="relation-label" x="940" y="315">receives</text>
+  <text class="multiplicity" x="890" y="335">1</text>
+  <text class="multiplicity" x="1135" y="480">0..*</text>
+  
+  <!-- LÉGENDE -->
+  <g transform="translate(50, 750)">
+    <rect fill="#ffffff" stroke="#333" stroke-width="2" width="400" height="200" rx="10" class="shadow"/>
+    <text class="class-name" x="200" y="25" text-anchor="middle" style="font-size: 14px;">📋 Légende</text>
+    
+    <g transform="translate(20, 50)">
+      <rect class="user-class" width="20" height="15" rx="2"/>
+      <text class="text" x="30" y="12">Classes Utilisateurs (User, Visitor, Host, Admin)</text>
+    </g>
+    
+    <g transform="translate(20, 80)">
+      <rect class="core-class" width="20" height="15" rx="2"/>
+      <text class="text" x="30" y="12">Classes Métier (Listing, Booking)</text>
+    </g>
+    
+    <g transform="translate(20, 110)">
+      <rect class="support-class" width="20" height="15" rx="2"/>
+      <text class="text" x="30" y="12">Classes Support (Payment, Review, Message, Notification)</text>
+    </g>
+    
+    <g transform="translate(20, 150)">
+      <path class="inheritance" d="M 0 5 L 30 5" />
+      <text class="text" x="40" y="10">Héritage (IS-A)</text>
+      
+      <path class="association" d="M 150 5 L 180 5" />
+      <text class="text" x="190" y="10">Association (HAS-A)</text>
+    </g>
+    
+    <text class="text" x="20" y="180" style="font-weight: bold;">Multiplicités: 1 = un | 0..* = zéro ou plus | 1..* = un ou plus</text>
+  </g>
+</svg>
