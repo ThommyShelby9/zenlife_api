@@ -5,7 +5,9 @@ import jakarta.mail.internet.MimeMessage;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 
+import java.security.SecureRandom;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -306,13 +308,11 @@ public User register(RegisterRequest registerRequest) throws MessagingException 
         sendHtmlEmail(user.getEmail(), subject, content);
     }
     
-       public void sendPasswordResetEmail(User user, String resetToken) throws MessagingException {
-        String subject = "ZenLife - Réinitialisation de votre mot de passe";
-        String resetLink = frontendUrl + "/reset-password/" + resetToken;
-        
-        String content = generatePasswordResetEmailContent(user.getFullName(), resetLink);
-        sendHtmlEmail(user.getEmail(), subject, content);
-    }
+public void sendPasswordResetEmail(User user, String resetCode) throws MessagingException {
+    String subject = "ZenLife - Code de réinitialisation de votre mot de passe";
+    String content = generatePasswordResetEmailContent(user.getFullName(), resetCode);
+    sendHtmlEmail(user.getEmail(), subject, content);
+}
     
     private void sendHtmlEmail(String to, String subject, String htmlContent) throws MessagingException {
         MimeMessage message = mailSender.createMimeMessage();
@@ -369,50 +369,124 @@ public User register(RegisterRequest registerRequest) throws MessagingException 
                "</body>\n" +
                "</html>";
     }
+    private String generatePasswordResetEmailContent(String fullName, String resetCode) {
+    return "<!DOCTYPE html>\n" +
+           "<html>\n" +
+           "<head>\n" +
+           "    <meta charset=\"utf-8\">\n" +
+           "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n" +
+           "    <title>Code de réinitialisation de votre mot de passe</title>\n" +
+           "</head>\n" +
+           "<body style=\"margin: 0; padding: 0; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; background-color: #f8f9fa;\">\n" +
+           "    <table role=\"presentation\" cellspacing=\"0\" cellpadding=\"0\" border=\"0\" align=\"center\" width=\"100%\" style=\"max-width: 600px; margin: 0 auto; padding: 40px 20px; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);\">\n" +
+           "        <tr>\n" +
+           "            <td style=\"text-align: center; padding-bottom: 30px;\">\n" +
+           "                <img src=\"https://zenlife-gs2w.onrender.com/img/logo.png\" alt=\"ZenLife\" width=\"150\" style=\"display: inline-block; max-width: 100%; height: auto;\">\n" +
+           "            </td>\n" +
+           "        </tr>\n" +
+           "        <tr>\n" +
+           "            <td style=\"padding: 0 30px;\">\n" +
+           "                <h1 style=\"color: #4f46e5; font-size: 24px; font-weight: 600; margin-bottom: 20px;\">Code de réinitialisation de votre mot de passe</h1>\n" +
+           "                <p style=\"color: #4b5563; font-size: 16px; line-height: 1.6; margin-bottom: 25px;\">Bonjour " + fullName + ",</p>\n" +
+           "                <p style=\"color: #4b5563; font-size: 16px; line-height: 1.6; margin-bottom: 25px;\">Nous avons reçu une demande de réinitialisation de mot de passe pour votre compte ZenLife. Utilisez le code de vérification ci-dessous pour réinitialiser votre mot de passe :</p>\n" +
+           "                <div style=\"text-align: center; margin: 40px 0;\">\n" +
+           "                    <div style=\"display: inline-block; background-color: #f3f4f6; border: 2px dashed #4f46e5; padding: 20px 30px; border-radius: 8px;\">\n" +
+           "                        <span style=\"color: #4f46e5; font-size: 32px; font-weight: 700; letter-spacing: 4px; font-family: 'Courier New', monospace;\">" + resetCode + "</span>\n" +
+           "                    </div>\n" +
+           "                </div>\n" +
+           "                <p style=\"color: #4b5563; font-size: 16px; line-height: 1.6; margin-bottom: 15px;\">Ce code est valable pendant 1 heure. Si vous n'avez pas demandé de réinitialisation de mot de passe, vous pouvez ignorer cet email en toute sécurité.</p>\n" +
+           "                <p style=\"color: #ef4444; font-size: 14px; line-height: 1.6; margin-bottom: 30px; background-color: #fef2f2; padding: 12px; border-radius: 4px; border-left: 4px solid #ef4444;\">⚠️ Ne partagez jamais ce code avec quiconque. ZenLife ne vous demandera jamais votre code par téléphone ou email.</p>\n" +
+           "            </td>\n" +
+           "        </tr>\n" +
+           "        <tr>\n" +
+           "            <td style=\"padding: 30px; border-top: 1px solid #e5e7eb; text-align: center;\">\n" +
+           "                <p style=\"color: #6b7280; font-size: 14px; margin-bottom: 10px;\">Cordialement,</p>\n" +
+           "                <p style=\"color: #4f46e5; font-size: 16px; font-weight: 500; margin-bottom: 20px;\">L'équipe ZenLife</p>\n" +
+           "                <div style=\"margin-top: 20px;\">\n" +
+           "                    <a href=\"#\" style=\"display: inline-block; margin: 0 8px;\"><img src=\"" + frontendUrl + "/assets/img/social/facebook.png\" alt=\"Facebook\" width=\"24\"></a>\n" +
+           "                    <a href=\"#\" style=\"display: inline-block; margin: 0 8px;\"><img src=\"" + frontendUrl + "/assets/img/social/twitter.png\" alt=\"Twitter\" width=\"24\"></a>\n" +
+           "                    <a href=\"#\" style=\"display: inline-block; margin: 0 8px;\"><img src=\"" + frontendUrl + "/assets/img/social/instagram.png\" alt=\"Instagram\" width=\"24\"></a>\n" +
+           "                </div>\n" +
+           "            </td>\n" +
+           "        </tr>\n" +
+           "    </table>\n" +
+           "</body>\n" +
+           "</html>";
+}
+
+    @Transactional
+public void sendPasswordResetCode(String email) {
+    User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+
+    // Générer un code de vérification à 8 caractères
+    String verificationCode = generateVerificationCode(8);
     
-    private String generatePasswordResetEmailContent(String fullName, String resetLink) {
-        return "<!DOCTYPE html>\n" +
-               "<html>\n" +
-               "<head>\n" +
-               "    <meta charset=\"utf-8\">\n" +
-               "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n" +
-               "    <title>Réinitialisation de votre mot de passe</title>\n" +
-               "</head>\n" +
-               "<body style=\"margin: 0; padding: 0; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; background-color: #f8f9fa;\">\n" +
-               "    <table role=\"presentation\" cellspacing=\"0\" cellpadding=\"0\" border=\"0\" align=\"center\" width=\"100%\" style=\"max-width: 600px; margin: 0 auto; padding: 40px 20px; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);\">\n" +
-               "        <tr>\n" +
-               "            <td style=\"text-align: center; padding-bottom: 30px;\">\n" +
-               "                <img src=\"https://zenlife-gs2w.onrender.com/img/logo.png\" alt=\"ZenLife\" width=\"150\" style=\"display: inline-block; max-width: 100%; height: auto;\">\n" +
-               "            </td>\n" +
-               "        </tr>\n" +
-               "        <tr>\n" +
-               "            <td style=\"padding: 0 30px;\">\n" +
-               "                <h1 style=\"color: #4f46e5; font-size: 24px; font-weight: 600; margin-bottom: 20px;\">Réinitialisation de votre mot de passe</h1>\n" +
-               "                <p style=\"color: #4b5563; font-size: 16px; line-height: 1.6; margin-bottom: 25px;\">Bonjour " + fullName + ",</p>\n" +
-               "                <p style=\"color: #4b5563; font-size: 16px; line-height: 1.6; margin-bottom: 25px;\">Nous avons reçu une demande de réinitialisation de mot de passe pour votre compte ZenLife. Pour définir un nouveau mot de passe, cliquez sur le bouton ci-dessous :</p>\n" +
-               "                <div style=\"text-align: center; margin: 40px 0;\">\n" +
-               "                    <a href=\"" + resetLink + "\" style=\"display: inline-block; background-color: #4f46e5; color: #ffffff; font-size: 16px; font-weight: 500; text-decoration: none; padding: 12px 30px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);\">Réinitialiser mon mot de passe</a>\n" +
-               "                </div>\n" +
-               "                <p style=\"color: #4b5563; font-size: 16px; line-height: 1.6; margin-bottom: 15px;\">Ce lien est valable pendant 1 heure. Si vous n'avez pas demandé de réinitialisation de mot de passe, vous pouvez ignorer cet email en toute sécurité.</p>\n" +
-               "                <p style=\"color: #4b5563; font-size: 16px; line-height: 1.6; margin-bottom: 15px;\">Si le bouton ne fonctionne pas, copiez et collez le lien suivant dans votre navigateur :</p>\n" +
-               "                <p style=\"color: #6b7280; font-size: 14px; line-height: 1.4; margin-bottom: 30px; word-break: break-all; background-color: #f3f4f6; padding: 12px; border-radius: 4px;\">" + resetLink + "</p>\n" +
-               "            </td>\n" +
-               "        </tr>\n" +
-               "        <tr>\n" +
-               "            <td style=\"padding: 30px; border-top: 1px solid #e5e7eb; text-align: center;\">\n" +
-               "                <p style=\"color: #6b7280; font-size: 14px; margin-bottom: 10px;\">Cordialement,</p>\n" +
-               "                <p style=\"color: #4f46e5; font-size: 16px; font-weight: 500; margin-bottom: 20px;\">L'équipe ZenLife</p>\n" +
-               "                <div style=\"margin-top: 20px;\">\n" +
-               "                    <a href=\"#\" style=\"display: inline-block; margin: 0 8px;\"><img src=\"" + frontendUrl + "/assets/img/social/facebook.png\" alt=\"Facebook\" width=\"24\"></a>\n" +
-               "                    <a href=\"#\" style=\"display: inline-block; margin: 0 8px;\"><img src=\"" + frontendUrl + "/assets/img/social/twitter.png\" alt=\"Twitter\" width=\"24\"></a>\n" +
-               "                    <a href=\"#\" style=\"display: inline-block; margin: 0 8px;\"><img src=\"" + frontendUrl + "/assets/img/social/instagram.png\" alt=\"Instagram\" width=\"24\"></a>\n" +
-               "                </div>\n" +
-               "            </td>\n" +
-               "        </tr>\n" +
-               "    </table>\n" +
-               "</body>\n" +
-               "</html>";
+    // Définir la date d'expiration (1 heure)
+    Instant expirationTime = Instant.now().plus(1, ChronoUnit.HOURS);
+    
+    // Sauvegarder le code et l'expiration
+    user.setVerificationToken(verificationCode);
+    user.setTokenExpirationDate(expirationTime);
+    user.setUpdatedAt(Instant.now());
+    
+    userRepository.save(user);
+    
+    try {
+        sendPasswordResetEmail(user, verificationCode);
+    } catch (MessagingException e) {
+        throw new RuntimeException("Erreur lors de l'envoi de l'email");
     }
+}
+
+@Transactional
+public void resetPasswordWithCode(String code, String newPassword) {
+    User user = userRepository.findByVerificationToken(code)
+            .orElseThrow(() -> new RuntimeException("Code invalide ou expiré"));
+
+    // Vérifier si le token a expiré
+    if (user.getTokenExpirationDate() != null && 
+        user.getTokenExpirationDate().isBefore(Instant.now())) {
+        throw new RuntimeException("Code expiré");
+    }
+
+    // Vérifier la validité du nouveau mot de passe
+    if (!isPasswordValid(newPassword)) {
+        throw new IllegalArgumentException(
+                "Le mot de passe doit contenir au moins 8 caractères, une lettre majuscule, une lettre minuscule, un chiffre et un caractère spécial.");
+    }
+
+    // Mettre à jour le mot de passe
+    user.setPassword(passwordEncoder.encode(newPassword));
+    user.setVerificationToken(null);
+    user.setTokenExpirationDate(null);
+    user.setUpdatedAt(Instant.now());
+
+    userRepository.save(user);
+}
+
+public void validateResetCode(String code) {
+    User user = userRepository.findByVerificationToken(code)
+            .orElseThrow(() -> new RuntimeException("Code invalide ou expiré"));
+
+    // Vérifier si le token a expiré
+    if (user.getTokenExpirationDate() != null && 
+        user.getTokenExpirationDate().isBefore(Instant.now())) {
+        throw new RuntimeException("Code expiré");
+    }
+}
+
+private String generateVerificationCode(int length) {
+    String characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    SecureRandom random = new SecureRandom();
+    StringBuilder code = new StringBuilder();
+    
+    for (int i = 0; i < length; i++) {
+        code.append(characters.charAt(random.nextInt(characters.length())));
+    }
+    
+    return code.toString();
+}
     
     @Transactional
     public void resetPassword(String token, String newPassword) {

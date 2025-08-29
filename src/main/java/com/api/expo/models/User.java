@@ -73,6 +73,18 @@ public class User implements UserDetails {
 
     private String profilePicture;
     
+// User.java - Ajouter ces champs à votre entité User
+@Column(name = "token_expiration_date")
+private Instant tokenExpirationDate;
+
+public Instant getTokenExpirationDate() {
+    return tokenExpirationDate;
+}
+
+public void setTokenExpirationDate(Instant tokenExpirationDate) {
+    this.tokenExpirationDate = tokenExpirationDate;
+}
+    
     @JsonProperty("profilePictureUrl")
     public String getProfilePictureUrl() {
         if (profilePicture != null) {

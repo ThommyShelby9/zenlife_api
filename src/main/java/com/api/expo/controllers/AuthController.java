@@ -119,23 +119,61 @@ public class AuthController {
         }
     }
     
-    @PostMapping("/forgot-password")
-    public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> request) {
-        Map<String, Object> response = new HashMap<>();
+
+@PostMapping("/forgot-password")
+public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> request) {
+    Map<String, Object> response = new HashMap<>();
+    
+    try {
+        String email = request.get("email");
+        userService.sendPasswordResetCode(email);
         
-        try {
-            String email = request.get("email");
-            userService.sendPasswordResetEmail(null, email);
-            
-            response.put("status", "success");
-            response.put("message", "Un email de réinitialisation de mot de passe a été envoyé.");
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            response.put("status", "error");
-            response.put("message", e.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-        }
+        response.put("status", "success");
+        response.put("message", "Un code de réinitialisation de mot de passe a été envoyé à votre adresse email.");
+        return ResponseEntity.ok(response);
+    } catch (Exception e) {
+        response.put("status", "error");
+        response.put("message", e.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
+}
+
+@PostMapping("/validate-reset-code")
+public ResponseEntity<?> validateResetCode(@RequestBody Map<String, String> request) {
+    Map<String, Object> response = new HashMap<>();
+    
+    try {
+        String code = request.get("code");
+        userService.validateResetCode(code);
+        
+        response.put("status", "success");
+        response.put("message", "Code valide");
+        return ResponseEntity.ok(response);
+    } catch (Exception e) {
+        response.put("status", "error");
+        response.put("message", e.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+}
+
+@PostMapping("/reset-password")
+public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> request) {
+    Map<String, Object> response = new HashMap<>();
+    
+    try {
+        String code = request.get("code");
+        String newPassword = request.get("password");
+        userService.resetPasswordWithCode(code, newPassword);
+        
+        response.put("status", "success");
+        response.put("message", "Votre mot de passe a été réinitialisé avec succès.");
+        return ResponseEntity.ok(response);
+    } catch (Exception e) {
+        response.put("status", "error");
+        response.put("message", e.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+}
     
     @PostMapping("/reset-password/{token}")
     public ResponseEntity<?> resetPassword(
